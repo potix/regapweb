@@ -4,6 +4,8 @@ go 1.18
 
 require (
 	github.com/gin-gonic/gin v1.7.7
+	github.com/google/uuid v1.3.0
+	github.com/gorilla/websocket v1.5.0
 	github.com/potix/utils/configurator v0.0.0-20220523045815-f55568d29e95
 	github.com/potix/utils/server v0.0.0-20220523045815-f55568d29e95
 	github.com/potix/utils/signal v0.0.0-20220523045815-f55568d29e95

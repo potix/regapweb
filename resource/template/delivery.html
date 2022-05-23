@@ -1,37 +1,65 @@
-<!DOCKTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
         <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1" />
                 <title>regap delivery</title>
-                <link rel="stylesheet" href="css/style.css" />
+		<link rel="stylesheet" href="css/style.css" />
         </head>
         <body>
-		<div id="div_for_video_devices"></div>
-		<div id="div_for_audio_devices"></div>
-		<div id="div_for_audio_out_devices"></div>
-		<br />
-		<button type="button" onclick="startVideo();">Start Video</button>
-		<div>
-                	<video id="local_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
-                	<video id="remote_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
-		</div>
 		<p>
-		    <button type="button" onclick="connect();">Connect</button>
-		    <br />
-		    SDP to send:
+                        uid: <input id="uid" type="text" size="32" value="{{ .uid }}" readonly />
+                </p>
+		<p>
+			Video input devices:
+                        <div id="div_for_video_input_devices">
+                                <select v-model="selectedVideoInputDevice">
+                                        <option v-for="device in videoInputDevices" v-bind:value="device.deviceId">
+                                        {{ "{{device.label}}" }}
+                                        </option>
+                                </select>
+                        </div>
+		</p>
+		<p>
+			Audio input devices:
+                        <div id="div_for_audio_input_devices">
+                                <select v-model="selectedAudioInputDevice">
+                                        <option v-for="device in audioInputDevices" v-bind:value="device.deviceId">
+                                        {{ "{{device.label}}" }}
+                                        </option>
+                                </select>
+                        </div>
+		</p>
+		<p>
+			Peers:
+                        <div id="div_for_peers">
+                                <select v-model="selectedPeer">
+                                        <option v-for="peer in peers" v-bind:value="peer">
+                                        {{ "{{peer}}" }}
+                                        </option>
+                                </select>
+                        </div>
+		</p>
+		<p>
+			<button type="button" onclick="startLocalVideo();">Start video</button>
+			<div>
+				<video id="local_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
+			</div>
+		</p>
+		<p>
+		    Local offer SDP :
 		    <br />
 		    <textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
 		<p>
-		    SDP to receive:
+		    Peer anser SDP:
 		    <br />
-		    <textarea id="text_for_receive_sdp" rows="5" cols="60"></textarea>
-		    <br />
-		    <button type="button" onclick="onSdpText();">Receive remote SDP</button>
+		    <textarea id="text_for_receive_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
-		<button type="button" onclick="hangUp();">Hang Up</button>
-		<script type='text/javascript' src="js/delivery.js"></script>
-		<script type='text/javascript' src="js/webrtc.js"></script>
+		<p>
+			<button type="button" onclick="hangUp();">Hang Up</button>
+		</p>
+		<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+                <script type='text/javascript' src="js/delivery.js"></script>
         </body>
 </html>

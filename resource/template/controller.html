@@ -1,4 +1,4 @@
-<!DOCKTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
         <head>
                 <meta charset="utf-8">
@@ -7,31 +7,35 @@
                 <link rel="stylesheet" href="css/style.css" />
         </head>
         <body>
-		<div id="div_for_video_devices"></div>
-                <div id="div_for_audio_devices"></div>
-                <div id="div_for_audio_out_devices"></div>
-                <br />
-                <button type="button" onclick="startVideo();">Start Video</button>
-                <div>
-			<video id="local_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
-			<video id="remote_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
-                </div>
 		<p>
-		    <button type="button" onclick="connect();">Connect</button>
-		    <br />
-		    SDP to send:
+			uid: <input id="uid" type="text" size="32" value="{{ .uid }}" readonly>
+		</p>
+		<p>
+			<div id="div_for_audio_output_devices">
+				<select v-model="selectedAudioOutputDevice"  v-on:change="setSkinId">
+					<option v-for="device in audioOutputDevices" v-bind:value="device.deviceId">
+					{{ "{{device.label}}" }}
+					</option>
+				</select>
+			</div>
+		</p>
+                <p>
+			<video id="remote_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
+                </p>
+		<p>
+		    Peer offer SDP:
 		    <br />
 		    <textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
 		<p>
-		    SDP to receive:
+		    Local anser SDP:
 		    <br />
-		    <textarea id="text_for_receive_sdp" rows="5" cols="60"></textarea>
-		    <br />
-		    <button type="button" onclick="onSdpText();">Receive remote SDP</button>
+		    <textarea id="text_for_receive_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
-		<button type="button" onclick="hangUp();">Hang Up</button>
+		<p>
+			<button type="button" onclick="hangUp();">Hang Up</button>
+		</p>
+		<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 		<script type='text/javascript' src="js/controller.js"></script>
-		<script type='text/javascript' src="js/webrtc.js"></script>
         </body>
 </html>
