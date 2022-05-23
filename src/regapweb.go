@@ -76,7 +76,7 @@ func main() {
         if err != nil {
                 log.Fatalf("can not load config: %v", err)
         }
-        if conf.HttpServer == nil || conf.HttpHandler == nil || conf.TcpServer == nil || conf.TcpHandler == nil || conf.Authorizer == nil {
+        if conf.HttpServer == nil || conf.HttpHandler == nil || conf.TcpServer == nil || conf.TcpHandler == nil {
                 log.Fatalf("invalid config")
         }
         if conf.Log != nil && conf.Log.UseSyslog {
@@ -93,8 +93,8 @@ func main() {
 	// setup tcp handler
 	thVerboseOpt := handler.TcpVerbose(conf.Verbose)
 	newTcpHandler, err := handler.NewTcpHandler(
-		newForwarder,
                 conf.TcpHandler.Secret,
+		newForwarder,
                 thVerboseOpt,
         )
         if err != nil {
@@ -106,8 +106,8 @@ func main() {
         newTcpServer, err := server.NewTcpServer(
                 conf.TcpServer.AddrPort,
                 newTcpHandler,
-                hsTlsOpt,
-                hsVerboseOpt,
+                tsTlsOpt,
+                tsVerboseOpt,
         )
         if err != nil {
                 log.Fatalf("can not create tcp server: %v", err)

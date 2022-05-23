@@ -38,13 +38,15 @@ func (f *Forwarder)ToWs(msg string) {
 	f.toWsChan <- msg
 }
 
-func (f *Forwarder) StartFromTcpListener(func onFromTcp(msg string)) {
+type OnFromTcp func(string)
+
+func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 	go func() {
 		log.Printf("start from tcp listener")
 		for {
 			select {
-			case v <- f.toTcpChan:
-				onFromTcp(v)
+			case v := <-f.toTcpChan:
+				fn(v)
 			case <-f.stopFromTcpChan:
 				return
 			}
@@ -53,14 +55,20 @@ func (f *Forwarder) StartFromTcpListener(func onFromTcp(msg string)) {
 	}()
 }
 
-func (f *Forwarder) StartFromWsListener(func onFromWs(msg string)) {
+func (f *Forwarder) StopFromTcpListener() {
+	close(f.stopFromTcpChan)
+}
+
+type OnFromWs func(string)
+
+func (f *Forwarder) StartFromWsListener(fn OnFromWs) {
 	go func() {
 		log.Printf("start from http listener")
 		for {
 			select {
-			case v <- f.toWsChan:
-				onFromWs(v)
-			case <- f.stopFromWsChan:
+			case v := <-f.toWsChan:
+				fn(v)
+			case <-f.stopFromWsChan:
 				return
 			}
 		}
@@ -68,11 +76,7 @@ func (f *Forwarder) StartFromWsListener(func onFromWs(msg string)) {
 	}()
 }
 
-func (f *Forwarder) StopFromTcpListener() {
-	close(f.stopFromTcpChan)
-}
-
-func (f *Forwarder) StopFromTcpListener() {
+func (f *Forwarder) StopFromWsListener() {
 	close(f.stopFromWsChan)
 }
 
