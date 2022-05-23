@@ -51,6 +51,8 @@ func (h *HttpHandler) SetRouting(router *gin.Engine) {
         css := path.Join(h.resourcePath, "css")
         img := path.Join(h.resourcePath, "img")
         font := path.Join(h.resourcePath, "font")
+	templatePath := path.Join(h.resourcePath, "template", "*")
+        router.LoadHTMLGlob(templatePath)
 	authGroup := router.Group("/", gin.BasicAuth(h.accounts))
 	authGroup.GET("/", h.indexHtml)
 	authGroup.GET("/index.html", h.indexHtml)
@@ -65,11 +67,11 @@ func (h *HttpHandler) SetRouting(router *gin.Engine) {
 }
 
 func (h *HttpHandler) indexHtml(c *gin.Context) {
-        c.HTML(http.StatusOK, "controller.tmpl", gin.H{})
+        c.HTML(http.StatusOK, "controller.html", gin.H{})
 }
 
 func (h *HttpHandler) deliveryHtml(c *gin.Context) {
-        c.HTML(http.StatusOK, "delivery.tmpl", gin.H{})
+        c.HTML(http.StatusOK, "delivery.html", gin.H{})
 }
 
 func (h *HttpHandler) webrtc(c *gin.Context) {
