@@ -8,11 +8,30 @@ import (
         "github.com/gin-gonic/gin"
 )
 
+type httpOptions struct {
+        verbose bool
+}
+
+func defaultHttpOptions() *httpOptions {
+        return &httpOptions {
+                verbose: false,
+        }
+}
+
+type HttpOption func(*httpOptions) {
+}
+
+func HttpVerbose(verbose bool) HttpOption {
+        return func(opts *httpOptions) {
+                opts.verbose = verbose
+        }
+}
+
 type HttpHandler struct {
-        verbose          bool
-        resourcePath     string
-        accounts         map[string]string
-	forwarder        *forwarder
+        verbose      bool
+        resourcePath string
+        accounts     map[string]string
+	forwarder    *forwarder
 }
 
 func (h *HttpHander) onFromTcp(msg string)
@@ -61,7 +80,7 @@ func (h *Handler) gamepad(c *gin.Context) {
 	log.Printf("requested gamepad")
 }
 
-func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *forwarder, opts ...Option) (*HttpHandler, error) {
+func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *forwarder, opts ...HttpOption) (*HttpHandler, error) {
         baseOpts := defaultHttpOptions()
         for _, opt := range opts {
                 if opt == nil {
@@ -69,7 +88,7 @@ func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *
                 }
                 opt(baseOpts)
         }
-	return &Handler{
+	return &HttpHandler{
                 verbose: baseOpts.verbose,
                 resourcePath: resourcePath,
                 accounts: accounts,
