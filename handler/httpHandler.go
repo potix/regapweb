@@ -443,9 +443,7 @@ func (h *HttpHandler) gamepadLoop(conn *websocket.Conn) {
 			if h.findPairSignalingClient(req.Uid, req.PeerUid) &&
 			    (req.Buttons != nil || len(req.Buttons) != 0) &&
 			    (req.Axes != nil || len(req.Axes) != 0) {
-
-				// forward to tcp
-
+				h.forwarder.ToTcp(reqMsg)
 			} else {
 				errMsg = fmt.Sprintf("invalid gamepadRequest: %v", string(reqMsg))
 			}

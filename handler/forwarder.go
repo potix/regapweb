@@ -45,7 +45,7 @@ func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 		log.Printf("start from tcp listener")
 		for {
 			select {
-			case v := <-f.toTcpChan:
+			case v := <-f.toWsChan:
 				fn(v)
 			case <-f.stopFromTcpChan:
 				return
@@ -66,7 +66,7 @@ func (f *Forwarder) StartFromWsListener(fn OnFromWs) {
 		log.Printf("start from http listener")
 		for {
 			select {
-			case v := <-f.toWsChan:
+			case v := <-f.toTcpChan:
 				fn(v)
 			case <-f.stopFromWsChan:
 				return

@@ -29,11 +29,13 @@ type TcpHandler struct {
         forwarder *Forwarder
 }
 
-func (t *TcpHandler) onFromHttp(msg []byte) {
+func (t *TcpHandler) onFromWs(msg []byte) {
+	// XXXX
+	//log.Printf("received %v", string(msg))
 }
 
 func (t *TcpHandler) Start() error {
-        t.forwarder.StartFromWsListener(t.onFromHttp)
+        t.forwarder.StartFromWsListener(t.onFromWs)
 	return nil
 }
 
