@@ -180,7 +180,7 @@ function signalingLookupLoop(socket) {
 		const uid = document.getElementById('uid');
 		let req = { "Command" : "lookupRequest", "Messages" : [ uid.value ] };
                 socket.send(JSON.stringify(req));
-        }, 5000);
+        }, 3000);
 }
 
 function stopSignalingLookupLoop(stopSignalinglookupLoopValue) {
