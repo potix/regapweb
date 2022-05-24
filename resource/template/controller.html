@@ -6,9 +6,34 @@
                 <title>regap controller</title>
                 <link rel="stylesheet" href="css/style.css" />
         </head>
-        <body>
+	<body>
 		<p>
-			uid: <input id="uid" type="text" size="32" value="{{ .uid }}" readonly>
+			Uid:
+			<br />
+			<input id="uid" type="text" size="32" value="{{ .uid }}" readonly>
+		</p>
+	        <p>
+			<div>
+				<div class="inline-block">
+					<button class="start-button" type="button" onclick="start();">Start</button>
+				</div>
+				<div id="start_lamp" class="border-radius background-color-gray inline-block"></div>
+			<div>
+		</p>
+		<p>
+			PeerUid:
+			<br />
+			<input id="peer_uid" type="text" size="32" readonly>
+		</p>
+		<p>
+			Peer offer SDP:
+			<br />
+			<textarea id="text_for_receive_sdp" rows="5" cols="60" readonly="readonly"></textarea>
+		</p>
+		<p>
+			Local anser SDP:
+			<br />
+			<textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
 		<p>
 			<div id="div_for_audio_output_devices">
@@ -19,19 +44,9 @@
 				</select>
 			</div>
 		</p>
-                <p>
-			<video id="remote_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
+		<p>
+			<video id="remote_video" autoplay style="width: 640px; height: 360px; border: 1px solid black;" ></video>
                 </p>
-		<p>
-		    Peer offer SDP:
-		    <br />
-		    <textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
-		</p>
-		<p>
-		    Local anser SDP:
-		    <br />
-		    <textarea id="text_for_receive_sdp" rows="5" cols="60" readonly="readonly"></textarea>
-		</p>
 		<p>
 			<button type="button" onclick="hangUp();">Hang Up</button>
 		</p>

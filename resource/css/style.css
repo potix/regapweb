@@ -1,0 +1,22 @@
+.inline-block {
+	display: inline-block;
+}
+
+.start-button {
+	height: 30px;
+}
+
+.border-radius {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	vertical-align: middle;
+}
+
+.background-color-gray {
+	background-color: gray;
+}
+
+.background-color-green {
+	background-color: green;
+}

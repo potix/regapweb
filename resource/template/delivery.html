@@ -8,7 +8,9 @@
         </head>
         <body>
 		<p>
-                        uid: <input id="uid" type="text" size="32" value="{{ .uid }}" readonly />
+                        Uid:
+			<br />
+			<input id="uid" type="text" size="32" value="{{ .uid }}" readonly />
                 </p>
 		<p>
 			Video input devices:
@@ -43,23 +45,23 @@
 		<p>
 			<button type="button" onclick="startLocalVideo();">Start video</button>
 			<div>
-				<video id="local_video" autoplay style="width: 426px; height: 240px; border: 1px solid black;" ></video>
+				<video id="local_video" autoplay style="width: 640px; height: 360px; border: 1px solid black;" ></video>
 			</div>
 		</p>
 		<p>
-		    Local offer SDP :
-		    <br />
-		    <textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
+			Local offer SDP :
+			<br />
+			<textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
 		<p>
-		    Peer anser SDP:
-		    <br />
-		    <textarea id="text_for_receive_sdp" rows="5" cols="60" readonly="readonly"></textarea>
+			Peer anser SDP:
+			<br />
+			<textarea id="text_for_receive_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
 		<p>
 			<button type="button" onclick="hangUp();">Hang Up</button>
 		</p>
 		<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
-                <script type='text/javascript' src="js/delivery.js"></script>
-        </body>
+		<script type='text/javascript' src="js/delivery.js"></script>
+	</body>
 </html>

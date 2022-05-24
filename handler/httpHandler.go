@@ -3,6 +3,7 @@ package handler
 
 import (
         "log"
+        "fmt"
         "path"
         "net/http"
 	"sync"
@@ -101,7 +102,7 @@ type commonRequest struct {
 
 type signalingRequest struct {
 	commonRequest
-	Message string
+	Messages []string
 }
 
 type signalingResponse struct {
@@ -122,17 +123,28 @@ func (h *HttpHandler) signalingClientUnregister(conn *websocket.Conn) {
 	delete(h.signalincClinets, conn)
 }
 
-func (h *HttpHandler) getSignalingClients() []string {
+func (h *HttpHandler) getSignalingClients(ignoreUid string) []string {
 	h.signalincClinetsMutex.Lock()
 	defer h.signalincClinetsMutex.Unlock()
 	clients := make([]string, 0, len(h.signalincClinets))
 	for _, v := range h.signalincClinets {
-		if v == "" {
+		if v == "" || v == ignoreUid {
 			continue
 		}
 		clients = append(clients, v)
 	}
 	return clients
+}
+
+func (h *HttpHandler) getSignalingClientConn(uid string) *websocket.Conn{
+	h.signalincClinetsMutex.Lock()
+	defer h.signalincClinetsMutex.Unlock()
+	for k, v := range h.signalincClinets {
+		if v == uid {
+			return k
+		}
+	}
+	return nil
 }
 
 func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan int) {
@@ -168,7 +180,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 	go h.StartPingLoop(conn, pingStopChan)
 	defer close(pingStopChan)
 	for {
-		t, msg, err := conn.ReadMessage()
+		t, reqMsg, err := conn.ReadMessage()
 		if err != nil {
 			break
 		}
@@ -177,7 +189,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 			continue
 		}
 		var req signalingRequest
-		if err := json.Unmarshal(msg, &req); err != nil {
+		if err := json.Unmarshal(reqMsg, &req); err != nil {
 			log.Printf("can not unmarshal message: %v", err)
 			continue
 		}
@@ -185,35 +197,112 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 			log.Printf("ping")
 			continue
 		} else if req.Command == "registerRequest" {
-			h.signalingClientRegister(conn, req.Message)
+			errMsg := ""
+			if len(req.Messages) == 1 {
+				h.signalingClientRegister(conn, req.Messages[0])
+			} else if len(req.Messages) > 1 {
+				errMsg = fmt.Sprintf("too many user id: %v", req.Messages)
+			} else {
+				errMsg = fmt.Sprintf("no user id: %v", req.Messages)
+			}
 			res := &signalingResponse{
 				Command: "registerResponse",
-				Error: "",
+				Error: errMsg,
 				Results: nil,
 			}
-			msg, err := json.Marshal(res)
+			resMsg, err := json.Marshal(res)
 			if err != nil {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = conn.WriteMessage(websocket.TextMessage, msg)
+			err = conn.WriteMessage(websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
 			}
 		} else if req.Command == "lookupRequest" {
-			clients := h.getSignalingClients()
+			ignoreUid := ""
+			errMsg := ""
+			var clients []string = nil
+			if len(req.Messages) == 0 {
+				clients = h.getSignalingClients(ignoreUid)
+			} else if len(req.Messages) == 1 {
+				ignoreUid = req.Messages[0]
+				clients = h.getSignalingClients(ignoreUid)
+			} else if len(req.Messages) > 1 {
+				errMsg = fmt.Sprintf("too many user id: %v", req.Messages)
+			}
 			res := &signalingResponse{
 				Command: "lookupResponse",
-				Error: "",
+				Error: errMsg,
 				Results: clients,
 			}
-			msg, err := json.Marshal(res)
+			resMsg, err := json.Marshal(res)
 			if err != nil {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = conn.WriteMessage(websocket.TextMessage, msg)
+			err = conn.WriteMessage(websocket.TextMessage, resMsg)
+			if err != nil {
+				log.Printf("can not write message: %v", err)
+				continue
+			}
+		} else if req.Command == "sendOfferSdpRequest" {
+			errMsg := ""
+			if len(req.Messages) != 3 {
+				errMsg = fmt.Sprintf("invalid Message: %v", req.Messages)
+			} else {
+				foundConn := h.getSignalingClientConn(req.Messages[0])
+				if foundConn == nil {
+					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
+				} else {
+					err := foundConn.WriteMessage(websocket.TextMessage, reqMsg)
+					if err != nil {
+						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
+					}
+				}
+			}
+			res := &signalingResponse{
+				Command: "sendOfferSdpResponse",
+				Error: errMsg,
+				Results: nil,
+			}
+			resMsg, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("can not unmarshal to json: %v", err)
+				continue
+			}
+			err = conn.WriteMessage(websocket.TextMessage, resMsg)
+			if err != nil {
+				log.Printf("can not write message: %v", err)
+				continue
+			}
+		} else if req.Command == "sendAnswerSdpRequest" {
+			errMsg := ""
+			if len(req.Messages) != 3 {
+				errMsg = fmt.Sprintf("invalid Message: %v", req.Messages)
+			} else {
+				foundConn := h.getSignalingClientConn(req.Messages[0])
+				if foundConn == nil {
+					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
+				} else {
+					err := foundConn.WriteMessage(websocket.TextMessage, reqMsg)
+					if err != nil {
+						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
+					}
+				}
+			}
+			res := &signalingResponse{
+				Command: "sendAnswerSdpResponse",
+				Error: errMsg,
+				Results: nil,
+			}
+			resMsg, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("can not unmarshal to json: %v", err)
+				continue
+			}
+			err = conn.WriteMessage(websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue

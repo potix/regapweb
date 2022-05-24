@@ -2,6 +2,7 @@ let localStream = null;
 let signalingSocket = null;
 let stopSignalingPingLoopValue = null;
 let stopSignalingLookupLoopValue = null;
+let peerConnection = null;
 
 let videoInputDeviceApp = new Vue({
         el: '#div_for_video_input_devices',
@@ -88,19 +89,64 @@ function startSignaling() {
         console.log("signaling open");
         stopSignalingPingLoopValue = pingLoop(signalingSocket)
         stopSignalingLookupLoopValue = signalingLookupLoop(signalingSocket)
-
+	const uid = document.getElementById('uid');
+        let req = { Command : "registerRequest", Messages : [ uid.value ] };
+        signalingSocket.send(JSON.stringify(req));
     };
     signalingSocket.onmessage = event => {
         console.log("signaling message");
         console.log(event);
-	let res = JSON.parse(event.data);
-        if (res.Command == "ping") {
+	let msg = JSON.parse(event.data);
+        if (msg.Command == "ping") {
                 console.log("ping");
                 return
-        }
-        if (res.Command == "lookupResponse") {
-                console.log("done lookup");
-		peerApp.peers = res.Results;
+        } else if (msg.Command == "registerResponse") {
+                if (msg.Error != "") {
+                        console.log("can not register: " + msg.Error);
+                } else {
+                        console.log("done register");
+                }
+                return
+        } else if (msg.Command == "lookupResponse") {
+		if (msg.Error != "") {
+			console.log("can not lookup: " + msg.Error);
+		} else {
+			console.log("done lookup");
+			peerApp.peers = msg.Results;
+		}
+                return
+        } else if (msg.Command == "sendOfferSdpResponse") {
+		if (msg.Error != "") {
+			console.log("can not send offer sdp: " + msg.Error);
+		} else {
+			console.log("done sendOfferSdp");
+		}
+                return
+        } else if (msg.Command == "sendAnswerSdpRequest") {
+                if (msg.Messages.length != 3) {
+                        console.log("invalid send answer sdp request");
+                        console.log(msg);
+                        return
+                }
+                const uid = document.getElementById('uid');
+                if (uid.value != msg.Messages[0]) {
+                        console.log("uid mismatch of send answer sdp request");
+                        console.log(msg);
+                        return
+                }
+		if (peerApp.selectedPeer != msg.Messages[1]) {
+                        console.log("peer uid mismatch of send answer sdp request");
+                        console.log(msg);
+                        return
+		}
+                console.log('received answer text');
+                const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
+                textToReceiveSdp.value = msg.Messages[2];
+                const sessionDescription = new RTCSessionDescription({
+                        type : 'answer',
+                        sdp : msg.Messages[2],
+                });
+                setAnswer(sessionDescription);
                 return
         }
     }
@@ -131,7 +177,8 @@ function stopPingLoop(stopSignalingPingLoopValue) {
 
 function signalingLookupLoop(socket) {
         return setInterval(() => {
-		let req = { "Command" : "lookupRequest", "Message" : uid.value };
+		const uid = document.getElementById('uid');
+		let req = { "Command" : "lookupRequest", "Messages" : [ uid.value ] };
                 socket.send(JSON.stringify(req));
         }, 5000);
 }
@@ -145,7 +192,7 @@ function startLocalVideo() {
 	if (peerApp.selectedPeer == '') {
 		console.log("noPeer");
 	}
-	let localVideo = document.getElementById('local_video'); 
+	const localVideo = document.getElementById('local_video'); 
 	localVideo.pause();
 	console.log(videoInputDeviceApp.selectedVideoInputDevice);
 	console.log(audioInputDeviceApp.selectedAudioInputDevice);
@@ -161,330 +208,113 @@ function startLocalVideo() {
 }
 
 async function playLocalVideo(stream) {
-	let localVideo = document.getElementById('local_video'); 
+	const localVideo = document.getElementById('local_video'); 
         localVideo.srcObject = localStream = stream;
         try {
             await localVideo.play();
-            console.log('XXXXXX start sdp exchange');
+            connectWebrtc();
         } catch(err) {
             console.log('error auto play:' + err);
         }
 }
 
-
-/*
-function connect() {
-    if (! peerConnection) {
-        console.log('make Offer');
-        peerConnection = prepareNewConnection(true);
-    }
-    else {
-        console.warn('peer already exist.');
-    }
-}
-*/
-
-
-
-
-
-
-
-
-
-/*
-const localVideo = document.getElementById('local_video');
-const remoteVideo = document.getElementById('remote_video');
-const videoDevices = document.getElementById('div_for_video_devices');
-const audioDevices = document.getElementById('div_for_audio_devices');
-const audioOutDevices = document.getElementById('div_for_audio_out_devices');
-let localStream = null;
-let remoteStream = null;
-
-function getDevices() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        console.log("enumerateDevices() not supported.");
-        return;
-    }
-    navigator.mediaDevices.enumerateDevices()
-    .then(function(devices) {
-
-        let videoSelect = "<select id='select_for_video_devices' >";
-        let audioSelect = "<select id='select_for_audio_devices' >";
-        let audioOutSelect = "<select id='select_for_audio_out_devices' >";
-        devices.forEach(function(device) {
-            if (device.kind == "videoinput") {
-                videoSelect += "<option value='" + device.deviceId + "'>" + device.label + "</option>";
-            } else if (device.kind == "audioinput") {
-                audioSelect += "<option value='" + device.deviceId + "'>" + device.label + "</option>";
-            } else if (device.kind == "audiooutput") {
-	        audioOutSelect += "<option value='" + device.deviceId + "'>" + device.label + "</option>";
-	    }
-        });
-        videoSelect += "</select>";
-        audioSelect += "</select>";
-        audioOutSelect += "</select>";
-        videoDevices.innerHTML = videoSelect;
-        audioDevices.innerHTML = audioSelect;
-        audioOutDevices.innerHTML = audioOutSelect;
-    })
-    .catch(function(err) {
-        console.log(err.name + ": " + err.message);
-    });
-}
-
-function getLocalStream() {
-    return localStream;
-}
-
-async function startVideo() {
-    let video = document.getElementById('select_for_video_devices');
-    let audio = document.getElementById('select_for_audio_devices');
-    try{
-        localStream = await navigator.mediaDevices.getUserMedia({video: { deviceId: video.value }, audio: { deviceId: audio.value} });
-        playLocalVideo(localStream);
-    } catch(err){
-        console.error('mediaDevice.getUserMedia() error:', err);
-    }
-}
-
-// Videoの再生を開始する
-async function playLocalVideo(stream) {
-    if (localVideo) {
-        localVideo.srcObject = stream;
-        try {
-            await localVideo.play();
-        } catch(err) {
-            console.log('error auto play:' + err);
-        }
-    } else {
-        console.log('error no local video');
-    }
-}
-
-function getRemoteStream() {
-    if (!remoteStream) {
-        console.log('new remote video');
-        remoteStream = new MediaStream();
-        remoteVideo.srcObject = remoteStream;
-    }
-    return remoteStream;
-}
-
-// Videoの再生を開始する
-async function playRemoteVideo() {
-    console.log('play remote video');
-    try {
-        await remoteVideo.play();
-    } catch(err) {
-        console.log('error auto play:' + err);
-    }
-}
-
-function cleanupRemoteVideo() {
-    remoteVideo.pause();
-    remoteVideo.srcObject = null;
-    remoteStream = null;
-}
-
-getDevices();
-const textForSendSdp = document.getElementById('text_for_send_sdp');
-const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
-let peerConnection = null;
-let isOffer = false;
-
-function prepareNewConnection(isOffer) {
-    console.log('prepareNewConnection');
-    // const iceServers = [ {"urls":"stun:stun.webrtc.ecl.ntt.com:3478"} ]
-    const iceServers = [
-        {
-	  urls: "stun:stun1.l.google.com:19302",
-        },
-        {
-          urls: "stun:stun2.l.google.com:19302",
-        },
-        {
-          urls: "stun:stun3.l.google.com:19302",
-        },
-        {
-          urls: "stun:stun4.l.google.com:19302",
-        },
-	{
-	  urls: "stun:stun.webrtc.ecl.ntt.com:3478",
-	},
-        //{
-        //    url: 'turn:numb.viagenie.ca',
-        //    credential: 'muazkh',
-        //    username: 'webrtc@live.com'
-        //},
-    ]
-    const pc_config = {"iceServers": iceServers };
-    const peer = new RTCPeerConnection(pc_config);
-
-    peer.onnegotiationneeded = async () => {
-        console.log('onnegotiationneeded');
-        try {
-            if(isOffer){
-                let offer = await peer.createOffer();
-                console.log('createOffer() succsess in promise');
-                await peer.setLocalDescription(offer);
-                console.log('setLocalDescription() succsess in promise');
-            }
-        } catch(err){
-            console.error('setLocalDescription(offer) ERROR: ', err);
-        }
-    }
-
-    // ICE Candidateを収集したときのイベント
-    peer.onicecandidate = evt => {
-        console.log('onicecandidate');
-        if (evt.candidate) {
-            console.log(evt.candidate);
-        } else {
-            console.log('empty ice event');
-	    console.log(peer.localDescription);
-            sendSdp(peer.localDescription);
-        }
-    };
-
-    peer.oniceconnectionstatechange = function() {
-        console.log('ICE connection Status has changed to ' + peer.iceConnectionState);
-        switch (peer.iceConnectionState) {
-            case 'closed':
-            case 'failed':
-                if (peerConnection) {
-                    hangUp();
-                }
-                break;
-            case 'disconnected':
-                break;
-        }
-    };
-
-    // リモートのMediaStreamTrackを受信した時
-    peer.ontrack = evt => {
-        console.log('-- peer.ontrack()');
-        console.log(evt.track);
-        console.log('Adding remote stream...');
-	remoteStream = getRemoteStream();
-	remoteStream.addTrack(evt.track);
-    };
-
-    // ローカルのMediaStreamを利用できるようにする
-    localStream = getLocalStream();
-    if (localStream) {
-        console.log('Adding local stream...');
+function connectWebrtc() {
+	console.log('make Offer');
+	peerConnection = prepareNewConnection(true);
+	// ローカルのMediaStreamを利用できるようにする
+	// peerConnectionのonnegotiationneededが発生する
+	console.log('Adding local stream...');
 	for (const track of localStream.getTracks()) {
-	    console.log(track);
-            peer.addTrack(track);
-        }
-    } else {
-        console.warn('no local stream, but continue.');
-    }
-
-    return peer;
+		console.log(track);
+		peerConnection.addTrack(track);
+	}
 }
 
-// 手動シグナリングのための処理を追加する
-function sendSdp(sessionDescription) {
-    console.log('---sending sdp ---');
-    textForSendSdp.value = sessionDescription.sdp;
-    textForSendSdp.focus();
-    textForSendSdp.select();
+function prepareNewConnection() {
+	console.log('prepareNewConnection');
+	const iceServers = [
+		{
+			urls: "stun:stun.webrtc.ecl.ntt.com:3478",
+		},
+		//{
+		//	url: 'turn:numb.viagenie.ca',
+		//	credential: 'muazkh',
+		//	username: 'webrtc@live.com'
+		//},
+	]
+	const peer = new RTCPeerConnection({"iceServers": iceServers });
+
+	peer.onnegotiationneeded = async () => {
+		console.log('onnegotiationneeded');
+		try {
+			let offer = await peer.createOffer();
+			console.log('createOffer() succsess in promise');
+			await peer.setLocalDescription(offer);
+			console.log('setLocalDescription() succsess in promise');
+		} catch(err){
+			console.error('setLocalDescription(offer) ERROR: ', err);
+		}
+		// この処理の後にonicecandidateが呼ばれる
+	}
+
+	// ICE Candidateを収集したときのイベント
+	peer.onicecandidate = evt => {
+		console.log('onicecandidate');
+		if (evt.candidate) {
+		    console.log(evt.candidate);
+		} else {
+		    console.log('empty ice event');
+		    console.log(peer.localDescription);
+		    // candidateの収集が終わるまで待つ
+		    sendOfferSdp(peer.localDescription);
+		}
+	};
+
+	peer.oniceconnectionstatechange = function() {
+		console.log('ICE connection Status has changed to ' + peer.iceConnectionState);
+		switch (peer.iceConnectionState) {
+		case 'closed':
+		case 'failed':
+		case 'disconnected':
+			hangUp();
+			break;
+		}
+        };
+
+	return peer;
 }
 
-function connect() {
-    if (! peerConnection) {
-        console.log('make Offer');
-        peerConnection = prepareNewConnection(true);
-    }
-    else {
-        console.warn('peer already exist.');
-    }
+function sendOfferSdp(sessionDescription) {
+	console.log('--- sending offer sdp ---');
+	const textForSendSdp = document.getElementById('text_for_send_sdp');
+	textForSendSdp.value = sessionDescription.sdp;
+	const uid = document.getElementById('uid');
+	let req = { "Command" : "sendOfferSdpRequest", "Messages" : [ peerApp.selectedPeer, uid.value, sessionDescription.sdp ] };
+        signalingSocket.send(JSON.stringify(req));
 }
 
-async function makeAnswer() {
-    console.log('sending Answer. Creating remote session description...' );
-    if (! peerConnection) {
-        console.error('peerConnection NOT exist!');
-        return;
-    }
-    try{
-        let answer = await peerConnection.createAnswer();
-        console.log('createAnswer() succsess in promise');
-        await peerConnection.setLocalDescription(answer);
-        console.log('setLocalDescription() succsess in promise');
-        sendSdp(peerConnection.localDescription);
-    } catch(err){
-        console.error(err);
-    }
-}
-
-// Receive remote SDPボタンが押されたらOffer側とAnswer側で処理を分岐
-function onSdpText() {
-    const text = textToReceiveSdp.value;
-    if (peerConnection) {
-        console.log('Received answer text...');
-        const answer = new RTCSessionDescription({
-            type : 'answer',
-            sdp : text,
-        });
-        setAnswer(answer);
-    }
-    else {
-        console.log('Received offer text...');
-        const offer = new RTCSessionDescription({
-            type : 'offer',
-            sdp : text,
-        });
-        setOffer(offer);
-    }
-    textToReceiveSdp.value ='';
-}
-
-// Offer側のSDPをセットする処理
-async function setOffer(sessionDescription) {
-    if (peerConnection) {
-        console.error('peerConnection alreay exist!');
-    }
-    peerConnection = prepareNewConnection(false);
-    try{
-        await peerConnection.setRemoteDescription(sessionDescription);
-        console.log('setRemoteDescription(offer) succsess in promise');
-        makeAnswer();
-	playRemoteVideo();
-    } catch(err){
-        console.error('setRemoteDescription(offer) ERROR: ', err);
-    }
-}
-
-// Answer側のSDPをセットする場合
 async function setAnswer(sessionDescription) {
-    if (! peerConnection) {
-        console.error('peerConnection NOT exist!');
-        return;
-    }
     try{
         await peerConnection.setRemoteDescription(sessionDescription);
         console.log('setRemoteDescription(answer) succsess in promise');
-	playRemoteVideo();
     } catch(err){
         console.error('setRemoteDescription(answer) ERROR: ', err);
     }
 }
 
-// P2P通信を切断する
 function hangUp(){
-    if (peerConnection) {
-        if(peerConnection.iceConnectionState !== 'closed'){
-            peerConnection.close();
-            peerConnection = null;
-            //negotiationneededCounter = 0;
-            cleanupRemoteVideo();
-            textForSendSdp.value = '';
-            return;
-        }
-    }
-    console.log('peerConnection is closed.');
+	console.log('hungup');
+	if(peerConnection && peerConnection.iceConnectionState !== 'closed'){
+		peerConnection.close();
+		peerConnection = null;
+		console.log('peerConnection is closed.');
+	}
+	const textForSendSdp = document.getElementById('text_for_send_sdp');
+	textForSendSdp.value = '';
+	const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
+	textToReceiveSdp.value = '';
+	const localVideo = document.getElementById('local_video');
+	localVideo.pause();
+	localVideo.srcObject = localStream = null;
 }
-*/
+

@@ -1,5 +1,8 @@
 let signalingSocket = null;
 let stopSignalingPingLoopValue = null;
+let peerConnection = null;
+let remoteStream = new MediaStream();
+let started = false;
 
 let audioOutputDeviceApp = new Vue({
 	el: '#div_for_audio_output_devices',
@@ -16,7 +19,7 @@ let audioOutputDeviceApp = new Vue({
 			if (this.selectedAudioOutputDevice == "") {
 				return
 			}
-			let remoteVideo = document.getElementById('remote_video');
+			const remoteVideo = document.getElementById('remote_video');
 			remoteVideo.setSinkId(this.selectedAudioOutputDevice);
 		},
 	}
@@ -25,6 +28,19 @@ let audioOutputDeviceApp = new Vue({
 window.onload = function() {
 	console.log("onload: ");
 	getUserMedia();
+}
+
+async function start() {
+	console.log('play remote video');
+	try {
+		started = true;
+		const startLamp = document.getElementById('start_lamp');
+		startLamp.setAttribute("class", "border-radius background-color-green inline-block" )
+		const remoteVideo = document.getElementById('remote_video');
+		await remoteVideo.play();
+	} catch(err) {
+		console.log('error auto play:' + err);
+	}
 }
 
 function getUserMedia() {
@@ -64,21 +80,58 @@ function startSignaling() {
     signalingSocket.onopen = event => {
         console.log("signaling open");
 	stopSignalingPingLoopValue = pingLoop(signalingSocket)
-	let uid = document.getElementById('uid');
-	let req = { Command : "registerRequest", Message : uid.value };
-	signalingSocket.send(JSON.stringify(req));
+	startRegister();
     };
     signalingSocket.onmessage = event => {
         console.log("signaling message");
         console.log(event);
-	let res = JSON.parse(event.data);
-	if (res.Command == "ping") {
+	let msg = JSON.parse(event.data);
+	if (msg.Command == "ping") {
 		console.log("ping");
 		return
-	}
-	if (res.Command == "registerResponse") {
-		console.log("done register");
+	} else if (msg.Command == "registerResponse") {
+		if (msg.Error != "") {
+			console.log("can not register: " + msg.Error);
+		} else {
+			console.log("done register");
+		}
 		return
+	} else if (msg.Command == "sendOfferSdpRequest") {
+		if (msg.Messages.length != 3) {
+			console.log("invalid send offer sdp request");
+			console.log(msg);
+			return
+		}
+		const uid = document.getElementById('uid');
+		if (uid.value != msg.Messages[0]) {
+			console.log("uid mismatch of send offer sdp request");
+			console.log(msg);
+			return
+		}
+		if (!msg.Messages[1]) {
+			console.log("no peer uid in send offer sdp request");
+			console.log(msg);
+			return
+		}
+		console.log('received offer text');
+		const peerUid = document.getElementById('peer_uid');
+		peerUid.value = msg.Messages[1]
+		const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
+		textToReceiveSdp.value = msg.Messages[2];
+	        const sessionDescription = new RTCSessionDescription({
+            		type : 'offer',
+			sdp : msg.Messages[2],
+		});
+		setOffer(sessionDescription);
+		return
+        } else if (msg.Command == "sendAnswerSdpResponse") {
+                if (msg.Error != "") {
+                        console.log("can not send answer sdp: " + msg.Error);
+                } else {
+                        console.log("done sendAnswerSdp");
+			playRemoteVideo();
+                }
+                return
 	}
     }
     signalingSocket.onerror = event => {
@@ -104,124 +157,23 @@ function stopPingLoop(stopSignalingPingLoopValue) {
         clearInterval(stopSignalingPingLoopValue);
 }
 
-
-
-
-/*
-	const remoteVideo = document.getElementById('remote_video');
-	const audioOutDevices = document.getElementById('div_for_audio_out_devices');
-	let remoteStream = null;
-	getDevices();
-	const selectAudioOutDevices = document.getElementById('select_for_audio_out_devices');
-	console.log(remoteVideo)
-	remoteVideo.setSinkId(selectAudioOutDevices.value);
-
+function startRegister() {
+	if (started == true) {
+		console.log("start register")
+		const uid = document.getElementById('uid');
+		let req = { Command : "registerRequest", Messages : [ uid.value ] };
+		signalingSocket.send(JSON.stringify(req));
+	} else {
+		console.log("retry register")
+		setTimeout( () => {
+			startRegister();
+		}, 1000);
+	}
 }
-*/
-
-
-
-
-/*
-
-function getDevices() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        console.log("enumerateDevices() not supported.");
-        return;
-    }
-    navigator.mediaDevices.enumerateDevices()
-    .then(function(devices) {
-
-        let audioOutSelect = "<select id='select_for_audio_out_devices' >";
-        devices.forEach(function(device) {
-            if (device.kind == "audiooutput") {
-	        audioOutSelect += "<option value='" + device.deviceId + "'>" + device.label + "</option>";
-	    }
-        });
-        audioOutSelect += "</select>";
-        audioOutDevices.innerHTML = audioOutSelect;
-    })
-    .catch(function(err) {
-        console.log(err.name + ": " + err.message);
-    });
-}
-
-async function startVideo() {
-    let video = document.getElementById('select_for_video_devices');
-    let audio = document.getElementById('select_for_audio_devices');
-    try{
-        localStream = await navigator.mediaDevices.getUserMedia({video: { deviceId: video.value }, audio: { deviceId: audio.value} });
-        playLocalVideo(localStream);
-    } catch(err){
-        console.error('mediaDevice.getUserMedia() error:', err);
-    }
-}
-
-// Videoの再生を開始する
-async function playLocalVideo(stream) {
-    if (localVideo) {
-        localVideo.srcObject = stream;
-        try {
-            await localVideo.play();
-        } catch(err) {
-            console.log('error auto play:' + err);
-        }
-    } else {
-        console.log('error no local video');
-    }
-}
-
-function getRemoteStream() {
-    if (!remoteStream) {
-        console.log('new remote video');
-        remoteStream = new MediaStream();
-        remoteVideo.srcObject = remoteStream;
-    }
-    return remoteStream;
-}
-
-// Videoの再生を開始する
-async function playRemoteVideo() {
-    console.log('play remote video');
-    try {
-        await remoteVideo.play();
-    } catch(err) {
-        console.log('error auto play:' + err);
-    }
-}
-
-function cleanupRemoteVideo() {
-    remoteVideo.pause();
-    remoteVideo.srcObject = null;
-    remoteStream = null;
-}
-
-
-
-getDevices();
-
-
-const textForSendSdp = document.getElementById('text_for_send_sdp');
-const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
-let peerConnection = null;
-let isOffer = false;
 
 function prepareNewConnection(isOffer) {
     console.log('prepareNewConnection');
-    // const iceServers = [ {"urls":"stun:stun.webrtc.ecl.ntt.com:3478"} ]
     const iceServers = [
-        {
-	  urls: "stun:stun1.l.google.com:19302",
-        },
-        {
-          urls: "stun:stun2.l.google.com:19302",
-        },
-        {
-          urls: "stun:stun3.l.google.com:19302",
-        },
-        {
-          urls: "stun:stun4.l.google.com:19302",
-        },
 	{
 	  urls: "stun:stun.webrtc.ecl.ntt.com:3478",
 	},
@@ -231,21 +183,10 @@ function prepareNewConnection(isOffer) {
         //    username: 'webrtc@live.com'
         //},
     ]
-    const pc_config = {"iceServers": iceServers };
-    const peer = new RTCPeerConnection(pc_config);
+    const peer = new RTCPeerConnection({"iceServers": iceServers});
 
     peer.onnegotiationneeded = async () => {
         console.log('onnegotiationneeded');
-        try {
-            if(isOffer){
-                let offer = await peer.createOffer();
-                console.log('createOffer() succsess in promise');
-                await peer.setLocalDescription(offer);
-                console.log('setLocalDescription() succsess in promise');
-            }
-        } catch(err){
-            console.error('setLocalDescription(offer) ERROR: ', err);
-        }
     }
 
     // ICE Candidateを収集したときのイベント
@@ -256,7 +197,7 @@ function prepareNewConnection(isOffer) {
         } else {
             console.log('empty ice event');
 	    console.log(peer.localDescription);
-            sendSdp(peer.localDescription);
+	    sendAnswerSdp(peer.localDescription);
         }
     };
 
@@ -265,11 +206,8 @@ function prepareNewConnection(isOffer) {
         switch (peer.iceConnectionState) {
             case 'closed':
             case 'failed':
-                if (peerConnection) {
-                    hangUp();
-                }
-                break;
             case 'disconnected':
+		hangUp();
                 break;
         }
     };
@@ -279,126 +217,69 @@ function prepareNewConnection(isOffer) {
         console.log('-- peer.ontrack()');
         console.log(evt.track);
         console.log('Adding remote stream...');
-	remoteStream = getRemoteStream();
 	remoteStream.addTrack(evt.track);
     };
-
-    // ローカルのMediaStreamを利用できるようにする
-    localStream = getLocalStream();
-    if (localStream) {
-        console.log('Adding local stream...');
-	for (const track of localStream.getTracks()) {
-	    console.log(track);
-            peer.addTrack(track);
-        }
-    } else {
-        console.warn('no local stream, but continue.');
-    }
 
     return peer;
 }
 
-// 手動シグナリングのための処理を追加する
-function sendSdp(sessionDescription) {
-    console.log('---sending sdp ---');
-    textForSendSdp.value = sessionDescription.sdp;
-    textForSendSdp.focus();
-    textForSendSdp.select();
-}
-
-function connect() {
-    if (! peerConnection) {
-        console.log('make Offer');
-        peerConnection = prepareNewConnection(true);
-    }
-    else {
-        console.warn('peer already exist.');
-    }
-}
-
-async function makeAnswer() {
-    console.log('sending Answer. Creating remote session description...' );
-    if (! peerConnection) {
-        console.error('peerConnection NOT exist!');
-        return;
-    }
-    try{
-        let answer = await peerConnection.createAnswer();
-        console.log('createAnswer() succsess in promise');
-        await peerConnection.setLocalDescription(answer);
-        console.log('setLocalDescription() succsess in promise');
-        sendSdp(peerConnection.localDescription);
-    } catch(err){
-        console.error(err);
-    }
-}
-
-// Receive remote SDPボタンが押されたらOffer側とAnswer側で処理を分岐
-function onSdpText() {
-    const text = textToReceiveSdp.value;
-    if (peerConnection) {
-        console.log('Received answer text...');
-        const answer = new RTCSessionDescription({
-            type : 'answer',
-            sdp : text,
-        });
-        setAnswer(answer);
-    }
-    else {
-        console.log('Received offer text...');
-        const offer = new RTCSessionDescription({
-            type : 'offer',
-            sdp : text,
-        });
-        setOffer(offer);
-    }
-    textToReceiveSdp.value ='';
-}
-
-// Offer側のSDPをセットする処理
 async function setOffer(sessionDescription) {
-    if (peerConnection) {
-        console.error('peerConnection alreay exist!');
-    }
-    peerConnection = prepareNewConnection(false);
+    peerConnection = prepareNewConnection();
     try{
         await peerConnection.setRemoteDescription(sessionDescription);
         console.log('setRemoteDescription(offer) succsess in promise');
-        makeAnswer();
-	playRemoteVideo();
+        makeAnswerSdp();
     } catch(err){
         console.error('setRemoteDescription(offer) ERROR: ', err);
     }
 }
 
-// Answer側のSDPをセットする場合
-async function setAnswer(sessionDescription) {
-    if (! peerConnection) {
-        console.error('peerConnection NOT exist!');
-        return;
-    }
+async function makeAnswerSdp() {
+    console.log('sending Answer. Creating remote session description...' );
     try{
-        await peerConnection.setRemoteDescription(sessionDescription);
-        console.log('setRemoteDescription(answer) succsess in promise');
-	playRemoteVideo();
+        let answer = await peerConnection.createAnswer();
+        console.log('createAnswer() succsess in promise');
+        await peerConnection.setLocalDescription(answer);
+        console.log('setLocalDescription() succsess in promise');
     } catch(err){
-        console.error('setRemoteDescription(answer) ERROR: ', err);
+        console.error(err);
     }
 }
 
-// P2P通信を切断する
+function sendAnswerSdp(sessionDescription) {
+	console.log('--- sending answer sdp ---');
+	const textForSendSdp = document.getElementById('text_for_send_sdp');
+	textForSendSdp.value = sessionDescription.sdp;
+	const uid = document.getElementById('uid');
+	const peerUid = document.getElementById('peer_uid');
+        let req = { "Command" : "sendAnswerSdpRequest", "Messages" : [ peerUid.value, uid.value, sessionDescription.sdp ] };
+        signalingSocket.send(JSON.stringify(req));
+}
+
+function playRemoteVideo() {
+    console.log('play remote video');
+    try {
+        const remoteVideo = document.getElementById('remote_video');
+        remoteVideo.srcObject = remoteStream;
+    } catch(err) {
+        console.log('error auto play:' + err);
+    }
+}
+
 function hangUp(){
-    if (peerConnection) {
-        if(peerConnection.iceConnectionState !== 'closed'){
-            peerConnection.close();
-            peerConnection = null;
-            //negotiationneededCounter = 0;
-            cleanupRemoteVideo();
-            textForSendSdp.value = '';
-            return;
-        }
-    }
-    console.log('peerConnection is closed.');
+        console.log('hungup');
+        if(peerConnection && peerConnection.iceConnectionState !== 'closed'){
+                peerConnection.close();
+                peerConnection = null;
+                console.log('peerConnection is closed.');
+	}
+        const textForSendSdp = document.getElementById('text_for_send_sdp');
+        textForSendSdp.value = '';
+        const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
+        textToReceiveSdp.value = '';
+        const remoteVideo = document.getElementById('remote_video');
+        remoteVideo.pause();
+        remoetVideo.srcObject = null;
+	remoteStream = new MediaStream();
 }
 
-*/
