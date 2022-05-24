@@ -3,6 +3,7 @@ let stopSignalingPingLoopValue = null;
 let peerConnection = null;
 let remoteStream = new MediaStream();
 let started = false;
+let gamepads = {};
 
 let audioOutputDeviceApp = new Vue({
 	el: '#div_for_audio_output_devices',
@@ -31,9 +32,22 @@ let audioOutputDeviceApp = new Vue({
 	}
 });
 
+let gamepadsApp = new Vue({
+	el: '#div_for_gamepads',
+	data: {
+		selectedGamepad: 0,
+		gamepads: [],
+	},
+	mounted : function(){ 
+	},
+	methods: {
+	}
+});
+
 window.onload = function() {
 	console.log("onload: ");
 	getUserMedia();
+	prepareGamepads();
 }
 
 async function start() {
@@ -291,4 +305,52 @@ function hangUp(){
         remoteVideo.srcObject = null;
 	remoteStream = new MediaStream();
 }
+
+function prepareGamepads() {
+	if ('GamepadEvent' in window) {
+		window.addEventListener("gamepadconnected", connectHandler);
+		window.addEventListener("gamepaddisconnected", disconnectHandler);
+	} else if ('WebKitGamepadEvent' in window) {
+		window.addEventListener("webkitgamepadconnected", connectHandler);
+		window.addEventListener("webkitgamepaddisconnected", disconnectHandler);
+	} else {
+		console.log("can not use gamepad");
+	}
+}
+
+function connectHandler(e) {
+	gamepads[e.gamepad.index] = e.gamepad;
+	gamepadsApp.gamepads = gamepads;
+	const rAF = window.requestAnimationFrame ||
+	            window.mozRequestAnimationFrame ||
+	            window.webkitRequestAnimationFrame
+	rAF(updateGamepadsStatus);
+}
+
+function disconnectHandler(e) {
+	delete gamepads[e.gamepad.index];
+}
+
+function scanGamepads() {
+	let gps = navigator.getGamepads ?  navigator.getGamepads() :
+	  	  (navigator.webkitGetGamepads ?  navigator.webkitGetGamepads() : []);
+	for (var i = 0; i < gps.length; i++) {
+		if (gps[i] && (gps[i].index in gamepads)) {
+			gamepads[gps[i].index] = gps[i];
+		}
+	}
+}
+
+function updateGamepadsStatus() {
+	scanGamepads();
+	gamepad = gamepads[gamepadsApp.selectedGamepad]
+	//console.log(gamepad);
+	const rAF = window.requestAnimationFrame ||
+	 	    window.mozRequestAnimationFrame ||
+                    window.webkitRequestAnimationFrame
+	rAF(updateGamepadsStatus);
+}
+
+
+
 

@@ -46,6 +46,16 @@
 			</div>
 		</p>
 		<p>
+			Gamepads:
+			<div id="div_for_gamepads">
+				<select v-model="selectedGamepad">
+					<option v-for="gamepad in gamepads" v-bind:value="gamepad.index">
+					{{ "{{gamepad.id}}" }}
+					</option>
+				</select>
+			</div>
+		</p>
+		<p>
 			<video id="remote_video" autoplay style="width: 640px; height: 360px; border: 1px solid black;" ></video>
                 </p>
 		<p>
