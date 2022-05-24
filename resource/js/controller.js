@@ -20,7 +20,13 @@ let audioOutputDeviceApp = new Vue({
 				return
 			}
 			const remoteVideo = document.getElementById('remote_video');
-			remoteVideo.setSinkId(this.selectedAudioOutputDevice);
+			remoteVideo.setSinkId(this.selectedAudioOutputDevice)
+			.then(function(stream) {
+				console.log("done set skinId");
+			})
+			.catch(function(err) {
+				console.log("in setSkinId: " + err.name + ": " + err.message);
+			});
 		},
 	}
 });
@@ -256,11 +262,13 @@ function sendAnswerSdp(sessionDescription) {
         signalingSocket.send(JSON.stringify(req));
 }
 
-function playRemoteVideo() {
+async function playRemoteVideo() {
     console.log('play remote video');
     try {
+	//remoteVideo.pause();
         const remoteVideo = document.getElementById('remote_video');
         remoteVideo.srcObject = remoteStream;
+	//await remoteVideo.play();
     } catch(err) {
         console.log('error auto play:' + err);
     }
@@ -278,8 +286,8 @@ function hangUp(){
         const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
         textToReceiveSdp.value = '';
         const remoteVideo = document.getElementById('remote_video');
-        remoteVideo.pause();
-        remoetVideo.srcObject = null;
+        //remoteVideo.pause();
+        remoteVideo.srcObject = null;
 	remoteStream = new MediaStream();
 }
 
