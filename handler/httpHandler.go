@@ -32,13 +32,18 @@ func HttpVerbose(verbose bool) HttpOption {
         }
 }
 
+type signalingClient struct {
+	writeMutex sync.Mutex
+	uid        string
+}
+
 type HttpHandler struct {
         verbose               bool
         resourcePath          string
         accounts              map[string]string
 	forwarder             *Forwarder
 	signalincClinetsMutex sync.Mutex
-	signalincClinets      map[*websocket.Conn]string
+	signalincClinets      map[*websocket.Conn]*signalingClient
 }
 
 func (h *HttpHandler) onFromTcp(msg string) {
@@ -111,10 +116,10 @@ type signalingResponse struct {
 	Results []string
 }
 
-func (h *HttpHandler) signalingClientRegister(conn *websocket.Conn, id string) {
+func (h *HttpHandler) signalingClientRegister(conn *websocket.Conn, client *signalingClient) {
 	h.signalincClinetsMutex.Lock()
 	defer h.signalincClinetsMutex.Unlock()
-	h.signalincClinets[conn] = id
+	h.signalincClinets[conn] = client
 }
 
 func (h *HttpHandler) signalingClientUnregister(conn *websocket.Conn) {
@@ -123,15 +128,22 @@ func (h *HttpHandler) signalingClientUnregister(conn *websocket.Conn) {
 	delete(h.signalincClinets, conn)
 }
 
+func (h *HttpHandler) signalingClientUpdate(conn *websocket.Conn, uid string) {
+	h.signalincClinetsMutex.Lock()
+	client := h.signalincClinets[conn]
+	h.signalincClinetsMutex.Unlock()
+	client.uid = uid
+}
+
 func (h *HttpHandler) getSignalingClients(ignoreUid string) []string {
 	h.signalincClinetsMutex.Lock()
 	defer h.signalincClinetsMutex.Unlock()
 	clients := make([]string, 0, len(h.signalincClinets))
 	for _, v := range h.signalincClinets {
-		if v == "" || v == ignoreUid {
+		if v.uid == "" || v.uid == ignoreUid {
 			continue
 		}
-		clients = append(clients, v)
+		clients = append(clients, v.uid)
 	}
 	return clients
 }
@@ -140,15 +152,24 @@ func (h *HttpHandler) getSignalingClientConn(uid string) *websocket.Conn{
 	h.signalincClinetsMutex.Lock()
 	defer h.signalincClinetsMutex.Unlock()
 	for k, v := range h.signalincClinets {
-		if v == uid {
+		if v.uid == uid {
 			return k
 		}
 	}
 	return nil
 }
 
+func (h *HttpHandler) safeWriteMessage(conn *websocket.Conn, messageType int, message []byte) error {
+	h.signalincClinetsMutex.Lock()
+	client := h.signalincClinets[conn]
+	h.signalincClinetsMutex.Unlock()
+	client.writeMutex.Lock()
+	defer client.writeMutex.Unlock()
+	return conn.WriteMessage(messageType, message)
+}
+
 func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan int) {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -161,7 +182,7 @@ func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan 
 				log.Printf("can not unmarshal to json: %v", err)
 				break
 			}
-			err = conn.WriteMessage(websocket.TextMessage, msg)
+			err = h.safeWriteMessage(conn, websocket.TextMessage, msg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				break
@@ -173,9 +194,9 @@ func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan 
 }
 
 func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
-	defer conn.Close()
-	h.signalingClientRegister(conn, "")
+	h.signalingClientRegister(conn, new(signalingClient))
 	defer h.signalingClientUnregister(conn)
+	defer conn.Close()
 	pingStopChan := make(chan int)
 	go h.StartPingLoop(conn, pingStopChan)
 	defer close(pingStopChan)
@@ -199,7 +220,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 		} else if req.Command == "registerRequest" {
 			errMsg := ""
 			if len(req.Messages) == 1 {
-				h.signalingClientRegister(conn, req.Messages[0])
+				h.signalingClientUpdate(conn, req.Messages[0])
 			} else if len(req.Messages) > 1 {
 				errMsg = fmt.Sprintf("too many user id: %v", req.Messages)
 			} else {
@@ -215,7 +236,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = conn.WriteMessage(websocket.TextMessage, resMsg)
+			err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -242,7 +263,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = conn.WriteMessage(websocket.TextMessage, resMsg)
+			err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -256,7 +277,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				if foundConn == nil {
 					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
 				} else {
-					err := foundConn.WriteMessage(websocket.TextMessage, reqMsg)
+					err := h.safeWriteMessage(foundConn, websocket.TextMessage, reqMsg)
 					if err != nil {
 						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
 					}
@@ -272,7 +293,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = conn.WriteMessage(websocket.TextMessage, resMsg)
+			err = h.safeWriteMessage(conn,websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -286,7 +307,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				if foundConn == nil {
 					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
 				} else {
-					err := foundConn.WriteMessage(websocket.TextMessage, reqMsg)
+					err := h.safeWriteMessage(foundConn, websocket.TextMessage, reqMsg)
 					if err != nil {
 						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
 					}
@@ -302,7 +323,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = conn.WriteMessage(websocket.TextMessage, resMsg)
+			err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -344,6 +365,6 @@ func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *
                 resourcePath:          resourcePath,
                 accounts:              accounts,
                 forwarder:             forwarder,
-		signalincClinets:      make(map[*websocket.Conn]string),
+		signalincClinets:      make(map[*websocket.Conn]*signalingClient),
         }, nil
 }

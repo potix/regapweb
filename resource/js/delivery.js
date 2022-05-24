@@ -168,7 +168,7 @@ function pingLoop(socket) {
         return setInterval(() => {
                 let req = { Command : "ping" };
                 socket.send(JSON.stringify(req));
-        }, 2000);
+        }, 10000);
 }
 
 function stopPingLoop(stopSignalingPingLoopValue) {
@@ -180,7 +180,7 @@ function signalingLookupLoop(socket) {
 		const uid = document.getElementById('uid');
 		let req = { "Command" : "lookupRequest", "Messages" : [ uid.value ] };
                 socket.send(JSON.stringify(req));
-        }, 3000);
+        }, 5000);
 }
 
 function stopSignalingLookupLoop(stopSignalinglookupLoopValue) {

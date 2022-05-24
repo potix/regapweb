@@ -36,6 +36,7 @@
 			<textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
 		<p>
+			Audio output devices:
 			<div id="div_for_audio_output_devices">
 				<select v-model="selectedAudioOutputDevice"  v-on:change="setSkinId">
 					<option v-for="device in audioOutputDevices" v-bind:value="device.deviceId">

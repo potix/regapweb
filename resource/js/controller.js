@@ -156,7 +156,7 @@ function pingLoop(socket) {
 	return setInterval(() => {
 		let req = { Command : "ping" }; 
 		socket.send(JSON.stringify(req));
-	}, 2000);
+	}, 10000);
 }
 
 function stopPingLoop(stopSignalingPingLoopValue) {
