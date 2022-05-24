@@ -6,6 +6,7 @@ let started = false;
 let gamepads = {};
 let gamepadSocket = null;
 let stopGamepadPingLoopValue = null;
+let gamepadTimestamp = 0;
 
 let audioOutputDeviceApp = new Vue({
 	el: '#div_for_audio_output_devices',
@@ -51,6 +52,10 @@ let gamepadsApp = new Vue({
 	mounted : function(){ 
 	},
 	methods: {
+		updateTimestamp: function() {
+			let gamepad = gamepads[this.selectedGamepad];
+			gamepadTimestamp = gamepad.timestamp;
+		}
 	}
 });
 
@@ -355,7 +360,25 @@ function scanGamepads() {
 function updateGamepadsStatus() {
 	scanGamepads();
 	gamepad = gamepads[gamepadsApp.selectedGamepad]
-	//console.log(gamepad);
+	if (gamepad.timestamp != gamepadTimestamp) {
+		const uid = document.getElementById('uid');
+		const peerUid = document.getElementById('peer_uid');
+		if (uid.value != "" && peerUid.value != "") {
+			buttons = [];
+			for (let v of gamepad.buttons) {
+				buttons.push({ "Pressed" : v.pressed, "Touched" : v.touched, "Value" : v.value })
+			}
+			let req = {
+				"Command": "gamepadRequest",
+				"Uid":     uid.value,
+				"PeerUid": peerUid.value,
+				"Buttons": buttons,
+				"Axes":    gamepad.axes,
+			};
+			gamepadSocket.send(JSON.stringify(req));
+			gamepadTimestamp = gamepad.timestamp;
+		}
+	}
 	const rAF = window.requestAnimationFrame ||
 	 	    window.mozRequestAnimationFrame ||
                     window.webkitRequestAnimationFrame

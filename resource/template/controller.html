@@ -28,7 +28,7 @@
 				Audio output devices:
 			</div>
 			<div class="inline-block" id="div_for_audio_output_devices">
-				<select v-model="selectedAudioOutputDevice"  v-on:change="setSkinId">
+				<select v-model="selectedAudioOutputDevice" v-on:change="setSkinId">
 					<option v-for="device in audioOutputDevices" v-bind:value="device.deviceId">
 					{{ "{{device.label}}" }}
 					</option>
@@ -40,7 +40,7 @@
 				Gamepads:
 			</div>
 			<div class="inline-block" id="div_for_gamepads">
-				<select v-model="selectedGamepad">
+				<select v-model="selectedGamepad" v-on:change="updateTimestamp">
 					<option v-for="gamepad in gamepads" v-bind:value="gamepad.index">
 					{{ "{{gamepad.id}}" }}
 					</option>

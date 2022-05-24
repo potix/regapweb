@@ -376,9 +376,9 @@ func (h *HttpHandler) webrtc(c *gin.Context) {
 }
 
 type gamepadButton struct {
-}
-
-type gamepadAxis struct {
+	Pressed bool
+	Touched bool
+	Value   int64
 }
 
 type gamepadRequest struct {
@@ -386,7 +386,7 @@ type gamepadRequest struct {
 	Uid        string
 	PeerUid    string
 	Buttons    []*gamepadButton
-	Axes       []*gamepadAxis
+	Axes       []float64
 }
 
 type gamepadResponse struct {
