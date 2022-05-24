@@ -262,7 +262,8 @@ function sendAnswerSdp(sessionDescription) {
         signalingSocket.send(JSON.stringify(req));
 }
 
-async function playRemoteVideo() {
+//async function playRemoteVideo() {
+function playRemoteVideo() {
     console.log('play remote video');
     try {
 	//remoteVideo.pause();
