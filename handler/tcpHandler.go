@@ -29,7 +29,7 @@ type TcpHandler struct {
         forwarder *Forwarder
 }
 
-func (t *TcpHandler) onFromHttp(msg string) {
+func (t *TcpHandler) onFromHttp(msg []byte) {
 }
 
 func (t *TcpHandler) Start() error {

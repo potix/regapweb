@@ -37,16 +37,22 @@ type signalingClient struct {
 	uid        string
 }
 
+type gamepadClient struct {
+	writeMutex sync.Mutex
+}
+
 type HttpHandler struct {
         verbose               bool
         resourcePath          string
         accounts              map[string]string
 	forwarder             *Forwarder
-	signalincClinetsMutex sync.Mutex
-	signalincClinets      map[*websocket.Conn]*signalingClient
+	signalincClientsMutex sync.Mutex
+	signalincClients      map[*websocket.Conn]*signalingClient
+	gamepadClientsMutex   sync.Mutex
+	gamepadClients        map[*websocket.Conn]*gamepadClient
 }
 
-func (h *HttpHandler) onFromTcp(msg string) {
+func (h *HttpHandler) onFromTcp(msg []byte) {
 }
 
 func (h *HttpHandler) Start() error {
@@ -116,59 +122,9 @@ type signalingResponse struct {
 	Results []string
 }
 
-func (h *HttpHandler) signalingClientRegister(conn *websocket.Conn, client *signalingClient) {
-	h.signalincClinetsMutex.Lock()
-	defer h.signalincClinetsMutex.Unlock()
-	h.signalincClinets[conn] = client
-}
+type writeMessageFunc  func(conn *websocket.Conn, messageType int, message []byte) error
 
-func (h *HttpHandler) signalingClientUnregister(conn *websocket.Conn) {
-	h.signalincClinetsMutex.Lock()
-	defer h.signalincClinetsMutex.Unlock()
-	delete(h.signalincClinets, conn)
-}
-
-func (h *HttpHandler) signalingClientUpdate(conn *websocket.Conn, uid string) {
-	h.signalincClinetsMutex.Lock()
-	client := h.signalincClinets[conn]
-	h.signalincClinetsMutex.Unlock()
-	client.uid = uid
-}
-
-func (h *HttpHandler) getSignalingClients(ignoreUid string) []string {
-	h.signalincClinetsMutex.Lock()
-	defer h.signalincClinetsMutex.Unlock()
-	clients := make([]string, 0, len(h.signalincClinets))
-	for _, v := range h.signalincClinets {
-		if v.uid == "" || v.uid == ignoreUid {
-			continue
-		}
-		clients = append(clients, v.uid)
-	}
-	return clients
-}
-
-func (h *HttpHandler) getSignalingClientConn(uid string) *websocket.Conn{
-	h.signalincClinetsMutex.Lock()
-	defer h.signalincClinetsMutex.Unlock()
-	for k, v := range h.signalincClinets {
-		if v.uid == uid {
-			return k
-		}
-	}
-	return nil
-}
-
-func (h *HttpHandler) safeWriteMessage(conn *websocket.Conn, messageType int, message []byte) error {
-	h.signalincClinetsMutex.Lock()
-	client := h.signalincClinets[conn]
-	h.signalincClinetsMutex.Unlock()
-	client.writeMutex.Lock()
-	defer client.writeMutex.Unlock()
-	return conn.WriteMessage(messageType, message)
-}
-
-func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan int) {
+func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan int, writeMessage writeMessageFunc) {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -182,7 +138,7 @@ func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan 
 				log.Printf("can not unmarshal to json: %v", err)
 				break
 			}
-			err = h.safeWriteMessage(conn, websocket.TextMessage, msg)
+			err = writeMessage(conn, websocket.TextMessage, msg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				break
@@ -193,12 +149,84 @@ func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan 
 	}
 }
 
+func (h *HttpHandler) signalingClientRegister(conn *websocket.Conn) {
+	h.signalincClientsMutex.Lock()
+	defer h.signalincClientsMutex.Unlock()
+	h.signalincClients[conn] = new(signalingClient)
+}
+
+func (h *HttpHandler) signalingClientUnregister(conn *websocket.Conn) {
+	h.signalincClientsMutex.Lock()
+	defer h.signalincClientsMutex.Unlock()
+	delete(h.signalincClients, conn)
+}
+
+func (h *HttpHandler) signalingClientUpdate(conn *websocket.Conn, uid string) {
+	h.signalincClientsMutex.Lock()
+	client := h.signalincClients[conn]
+	h.signalincClientsMutex.Unlock()
+	client.uid = uid
+}
+
+func (h *HttpHandler) getSignalingClients(ignoreUid string) []string {
+	h.signalincClientsMutex.Lock()
+	defer h.signalincClientsMutex.Unlock()
+	clients := make([]string, 0, len(h.signalincClients))
+	for _, v := range h.signalincClients {
+		if v.uid == "" || v.uid == ignoreUid {
+			continue
+		}
+		clients = append(clients, v.uid)
+	}
+	return clients
+}
+
+func (h *HttpHandler) getSignalingClientConn(uid string) *websocket.Conn{
+	h.signalincClientsMutex.Lock()
+	defer h.signalincClientsMutex.Unlock()
+	for k, v := range h.signalincClients {
+		if v.uid == uid {
+			return k
+		}
+	}
+	return nil
+}
+
+func (h *HttpHandler) findPairSignalingClient(uid string, peerUid string) bool {
+	if uid == "" || peerUid == "" {
+		return false
+	}
+	h.signalincClientsMutex.Lock()
+	defer h.signalincClientsMutex.Unlock()
+	found := 0
+	for _, v := range h.signalincClients {
+		if v.uid == uid {
+			found += 1
+		} else if v.uid == peerUid {
+			found += 1
+		}
+	}
+	if found < 2 {
+		return false
+	}
+	return true
+}
+
+func (h *HttpHandler) safeSignalingWriteMessage(conn *websocket.Conn, messageType int, message []byte) error {
+	h.signalincClientsMutex.Lock()
+	client := h.signalincClients[conn]
+	h.signalincClientsMutex.Unlock()
+	client.writeMutex.Lock()
+	defer client.writeMutex.Unlock()
+	return conn.WriteMessage(messageType, message)
+}
+
 func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
-	h.signalingClientRegister(conn, new(signalingClient))
+	h.signalingClientRegister(conn)
 	defer h.signalingClientUnregister(conn)
 	defer conn.Close()
 	pingStopChan := make(chan int)
-	go h.StartPingLoop(conn, pingStopChan)
+	go h.StartPingLoop(conn, pingStopChan, h.safeSignalingWriteMessage)
 	defer close(pingStopChan)
 	for {
 		t, reqMsg, err := conn.ReadMessage()
@@ -215,7 +243,6 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 			continue
 		}
 		if req.Command == "ping" {
-			log.Printf("ping")
 			continue
 		} else if req.Command == "registerRequest" {
 			errMsg := ""
@@ -236,7 +263,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
+			err = h.safeSignalingWriteMessage(conn, websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -263,7 +290,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
+			err = h.safeSignalingWriteMessage(conn, websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -277,7 +304,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				if foundConn == nil {
 					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
 				} else {
-					err := h.safeWriteMessage(foundConn, websocket.TextMessage, reqMsg)
+					err := h.safeSignalingWriteMessage(foundConn, websocket.TextMessage, reqMsg)
 					if err != nil {
 						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
 					}
@@ -293,7 +320,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = h.safeWriteMessage(conn,websocket.TextMessage, resMsg)
+			err = h.safeSignalingWriteMessage(conn,websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -307,7 +334,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				if foundConn == nil {
 					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
 				} else {
-					err := h.safeWriteMessage(foundConn, websocket.TextMessage, reqMsg)
+					err := h.safeSignalingWriteMessage(foundConn, websocket.TextMessage, reqMsg)
 					if err != nil {
 						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
 					}
@@ -323,7 +350,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not unmarshal to json: %v", err)
 				continue
 			}
-			err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
+			err = h.safeSignalingWriteMessage(conn, websocket.TextMessage, resMsg)
 			if err != nil {
 				log.Printf("can not write message: %v", err)
 				continue
@@ -348,8 +375,112 @@ func (h *HttpHandler) webrtc(c *gin.Context) {
 	go h.signalingLoop(conn)
 }
 
+type gamepadButton struct {
+}
+
+type gamepadAxis struct {
+}
+
+type gamepadRequest struct {
+	commonRequest
+	Uid        string
+	PeerUid    string
+	Buttons    []*gamepadButton
+	Axes       []*gamepadAxis
+}
+
+type gamepadResponse struct {
+	Command string
+	Error string
+}
+
+func (h *HttpHandler) gamepadClientRegister(conn *websocket.Conn) {
+	h.gamepadClientsMutex.Lock()
+	defer h.gamepadClientsMutex.Unlock()
+	h.gamepadClients[conn] = new(gamepadClient)
+}
+
+func (h *HttpHandler) gamepadClientUnregister(conn *websocket.Conn) {
+	h.gamepadClientsMutex.Lock()
+	defer h.gamepadClientsMutex.Unlock()
+	delete(h.gamepadClients, conn)
+}
+
+func (h *HttpHandler) safeGamepadWriteMessage(conn *websocket.Conn, messageType int, message []byte) error {
+	h.gamepadClientsMutex.Lock()
+	client := h.gamepadClients[conn]
+	h.gamepadClientsMutex.Unlock()
+	client.writeMutex.Lock()
+	defer client.writeMutex.Unlock()
+	return conn.WriteMessage(messageType, message)
+}
+
+func (h *HttpHandler) gamepadLoop(conn *websocket.Conn) {
+	h.gamepadClientRegister(conn)
+	defer h.gamepadClientUnregister(conn)
+	defer conn.Close()
+	pingStopChan := make(chan int)
+	go h.StartPingLoop(conn, pingStopChan, h.safeGamepadWriteMessage)
+	defer close(pingStopChan)
+	for {
+		t, reqMsg, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		if t != websocket.TextMessage {
+			log.Printf("unsupported message type: %v", t)
+			continue
+		}
+		var req gamepadRequest
+		if err := json.Unmarshal(reqMsg, &req); err != nil {
+			log.Printf("can not unmarshal message: %v", err)
+			continue
+		}
+		if req.Command == "ping" {
+			continue
+		} else if req.Command == "gamepadRequest" {
+			errMsg := ""
+			if h.findPairSignalingClient(req.Uid, req.PeerUid) &&
+			    (req.Buttons != nil || len(req.Buttons) != 0) &&
+			    (req.Axes != nil || len(req.Axes) != 0) {
+
+				// forward to tcp
+
+			} else {
+				errMsg = fmt.Sprintf("invalid gamepadRequest: %v", string(reqMsg))
+			}
+			res := &gamepadResponse{
+				Command: "gamepadResponse",
+				Error: errMsg,
+			}
+			resMsg, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("can not unmarshal to json: %v", err)
+				continue
+			}
+			err = h.safeGamepadWriteMessage(conn, websocket.TextMessage, resMsg)
+			if err != nil {
+				log.Printf("can not write message: %v", err)
+				continue
+			}
+		}
+	}
+}
+
 func (h *HttpHandler) gamepad(c *gin.Context) {
 	log.Printf("requested gamepad")
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  4096,
+		WriteBufferSize: 4096,
+		Subprotocols: []string{"gamepad"},
+	}
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Println("Failed to set websocket upgrade: %+v", err)
+                c.AbortWithStatus(400)
+		return
+	}
+	go h.gamepadLoop(conn)
 }
 
 func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *Forwarder, opts ...HttpOption) (*HttpHandler, error) {
@@ -361,10 +492,11 @@ func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *
                 opt(baseOpts)
         }
 	return &HttpHandler{
-                verbose:               baseOpts.verbose,
-                resourcePath:          resourcePath,
-                accounts:              accounts,
-                forwarder:             forwarder,
-		signalincClinets:      make(map[*websocket.Conn]*signalingClient),
+                verbose:          baseOpts.verbose,
+                resourcePath:     resourcePath,
+                accounts:         accounts,
+                forwarder:        forwarder,
+		signalincClients: make(map[*websocket.Conn]*signalingClient),
+		gamepadClients:   make(map[*websocket.Conn]*gamepadClient),
         }, nil
 }
