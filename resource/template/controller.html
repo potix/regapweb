@@ -7,11 +7,6 @@
                 <link rel="stylesheet" href="css/style.css" />
         </head>
 	<body>
-		<p>
-			Uid:
-			<br />
-			<input id="uid" type="text" size="32" value="{{ .uid }}" readonly>
-		</p>
 	        <p>
 			<div>
 				<div class="inline-block">
@@ -21,9 +16,47 @@
 			<div>
 		</p>
 		<p>
-			PeerUid:
-			<br />
-			<input id="peer_uid" type="text" size="32" readonly>
+			<div class="inline-block">
+				Uid:
+			</div>
+			<div class="inline-block">
+				<input id="uid" type="text" size="32" value="{{ .uid }}" readonly>
+			</div>
+		</p>
+		<p>
+			<div class="inline-block">
+				Audio output devices:
+			</div>
+			<div class="inline-block" id="div_for_audio_output_devices">
+				<select v-model="selectedAudioOutputDevice"  v-on:change="setSkinId">
+					<option v-for="device in audioOutputDevices" v-bind:value="device.deviceId">
+					{{ "{{device.label}}" }}
+					</option>
+				</select>
+			</div>
+		</p>
+		<p>
+			<div class="inline-block">
+				Gamepads:
+			</div>
+			<div class="inline-block" id="div_for_gamepads">
+				<select v-model="selectedGamepad">
+					<option v-for="gamepad in gamepads" v-bind:value="gamepad.index">
+					{{ "{{gamepad.id}}" }}
+					</option>
+				</select>
+			</div>
+		</p>
+		<p>
+			<video id="remote_video" autoplay style="width: 960px; height: 540px; border: 1px solid black;" ></video>
+                </p>
+		<p>
+			<div class="inline-block">
+				PeerUid:
+			</div>
+			<div class="inline-block">
+				<input id="peer_uid" type="text" size="32" readonly>
+			</div>
 		</p>
 		<p>
 			Peer offer SDP:
@@ -35,29 +68,6 @@
 			<br />
 			<textarea id="text_for_send_sdp" rows="5" cols="60" readonly="readonly"></textarea>
 		</p>
-		<p>
-			Audio output devices:
-			<div id="div_for_audio_output_devices">
-				<select v-model="selectedAudioOutputDevice"  v-on:change="setSkinId">
-					<option v-for="device in audioOutputDevices" v-bind:value="device.deviceId">
-					{{ "{{device.label}}" }}
-					</option>
-				</select>
-			</div>
-		</p>
-		<p>
-			Gamepads:
-			<div id="div_for_gamepads">
-				<select v-model="selectedGamepad">
-					<option v-for="gamepad in gamepads" v-bind:value="gamepad.index">
-					{{ "{{gamepad.id}}" }}
-					</option>
-				</select>
-			</div>
-		</p>
-		<p>
-			<video id="remote_video" autoplay style="width: 640px; height: 360px; border: 1px solid black;" ></video>
-                </p>
 		<p>
 			<button type="button" onclick="hangUp();">Hang Up</button>
 		</p>
