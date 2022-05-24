@@ -4,6 +4,8 @@ let peerConnection = null;
 let remoteStream = new MediaStream();
 let started = false;
 let gamepads = {};
+let gamepadSocket = null;
+let stopGamepadPingLoopValue = null;
 
 let audioOutputDeviceApp = new Vue({
 	el: '#div_for_audio_output_devices',
@@ -21,13 +23,21 @@ let audioOutputDeviceApp = new Vue({
 				return
 			}
 			const remoteVideo = document.getElementById('remote_video');
-			remoteVideo.setSinkId(this.selectedAudioOutputDevice)
-			.then(function(stream) {
-				console.log("done set skinId");
-			})
-			.catch(function(err) {
-				console.log("in setSkinId: " + err.name + ": " + err.message);
-			});
+			if (remoteVideo.setSinkId) {
+				remoteVideo.setSinkId(this.selectedAudioOutputDevice)
+				.then(function(stream) {
+					console.log("done set skinId");
+				})
+				.catch(function(err) {
+					console.log("in setSkinId: " + err.name + ": " + err.message);
+				});
+			} else {
+				// [ firefox ]
+				// about:config
+				// media.setsinkid.enabled
+				// change to true
+				console.log("can set skinId");
+			}
 		},
 	}
 });
@@ -173,8 +183,8 @@ function pingLoop(socket) {
 	}, 10000);
 }
 
-function stopPingLoop(stopSignalingPingLoopValue) {
-        clearInterval(stopSignalingPingLoopValue);
+function stopPingLoop(value) {
+        clearInterval(value);
 }
 
 function startRegister() {
@@ -316,6 +326,7 @@ function prepareGamepads() {
 	} else {
 		console.log("can not use gamepad");
 	}
+	startForwardGamepad();
 }
 
 function connectHandler(e) {
@@ -351,6 +362,39 @@ function updateGamepadsStatus() {
 	rAF(updateGamepadsStatus);
 }
 
-
-
-
+function startForwardGamepad() {
+    gamepadSocket = new WebSocket("wss://" + location.host + "/gamepad", "gamepad");    
+    gamepadSocket.onopen = event => {
+        console.log("gamepad open");
+	stopGamepadPingLoopValue = pingLoop(gamepadSocket)
+    };
+    gamepadSocket.onmessage = event => {
+        console.log("gamepadSocket message");
+        console.log(event);
+	let msg = JSON.parse(event.data);
+	if (msg.Command == "ping") {
+		console.log("ping");
+		return
+	} else if (msg.Command == "gamepadResponse") {
+		if (msg.Error != "") {
+			console.log("can not forward gamepad: " + msg.Error);
+		} else {
+			console.log("done forward gamepad");
+		}
+		return
+	} else if (msg.Command == "vibrationRequest") {
+		console.log("vibration request");
+		return
+	}
+    }
+    gamepadSocket.onerror = event => {
+        stopPingLoop(stopGamepadPingLoopValue);
+        console.log("gamepad error");
+        console.log(event);
+    }
+    gamepadSocket.onclose = event => {
+        stopPingLoop(stopGamepadPingLoopValue);
+        console.log("gamepad close");
+        console.log(event);
+    }
+}
