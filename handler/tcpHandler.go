@@ -34,29 +34,29 @@ type CommonGamepadMessage struct {
         Error   string
 }
 
-type gamepadVibration struct {
+type GamepadVibration struct {
         Duration        float64
         StartDelay      float64
         StrongMagnitude float64
         WeakMagnitude   float64
 }
 
-type gamepadButton struct {
+type GamepadButton struct {
         Pressed bool
         Touched bool
         Value   int64
 }
 
-type GamepadMessage struct {
-        commonGamepadMessage
-        Uid     string
-        PeerUid string
-        Buttons []*gamepadButton
+type GamepadState struct {
+        Buttons []*GamepadButton
         Axes    []float64
-        Vibration gamepadVibration
 }
 
-
+type GamepadMessage struct {
+        CommonGamepadMessage
+	State     *GamepadState
+        Vibration *GamepadVibration
+}
 
 func (t *TcpHandler) onFromWs(msg []byte) {
 	// XXXX
