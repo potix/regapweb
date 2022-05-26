@@ -48,7 +48,6 @@ type regapwebConfig struct {
 
 type commandArguments struct {
         configFile string
-        videoId    string
 }
 
 func verboseLoadedConfig(config *regapwebConfig) {
