@@ -16,6 +16,7 @@ type regapwebHttpServerConfig struct {
         AddrPort    string `toml:"addrPort"`
         TlsCertPath string `toml:"tlsCertPath"`
         TlsKeyPath  string `toml:"tlsKeyPath"`
+	SkipVerify  bool   `toml:"skipVerify`
 }
 
 type regapwebHttpHandlerConfig struct {
@@ -27,6 +28,7 @@ type regapwebTcpServerConfig struct {
         AddrPort    string `toml:"addrPort"`
         TlsCertPath string `toml:"tlsCertPath"`
         TlsKeyPath  string `toml:"tlsKeyPath"`
+	SkipVerify  bool   `toml:"skipVerify`
 }
 
 type regapwebTcpHandlerConfig struct {
@@ -102,10 +104,12 @@ func main() {
 	// setup tcp server
         tsVerboseOpt := server.TcpServerVerbose(conf.Verbose)
         tsTlsOpt := server.TcpServerTls(conf.TcpServer.TlsCertPath, conf.TcpServer.TlsKeyPath)
+        tsSkipVerifyOpt := server.TcpServerSkipVerify(conf.TcpServer.SkipVerify)
         newTcpServer, err := server.NewTcpServer(
                 conf.TcpServer.AddrPort,
                 newTcpHandler,
                 tsTlsOpt,
+		tsSkipVerifyOpt,
                 tsVerboseOpt,
         )
         if err != nil {
@@ -125,11 +129,13 @@ func main() {
 	// setup http server
         hsVerboseOpt := server.HttpServerVerbose(conf.Verbose)
         hsTlsOpt := server.HttpServerTls(conf.HttpServer.TlsCertPath, conf.HttpServer.TlsKeyPath)
+        hsSkipVerifyOpt := server.HttpServerSkipVerify(conf.HttpServer.SkipVerify)
         hsModeOpt := server.HttpServerMode(conf.HttpServer.Mode)
         newHttpServer, err := server.NewHttpServer(
                 conf.HttpServer.AddrPort,
                 newHttpHandler,
                 hsTlsOpt,
+		hsSkipVerifyOpt,
                 hsModeOpt,
                 hsVerboseOpt,
         )
