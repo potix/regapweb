@@ -124,7 +124,7 @@ type signalingResponse struct {
 
 type writeMessageFunc  func(conn *websocket.Conn, messageType int, message []byte) error
 
-func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan int, writeMessage writeMessageFunc) {
+func (h *HttpHandler) startPingLoop(conn *websocket.Conn, pingLoopStopChan chan int, writeMessage writeMessageFunc) {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -140,7 +140,7 @@ func (h *HttpHandler) StartPingLoop(conn *websocket.Conn, pingLoopStopChan chan 
 			}
 			err = writeMessage(conn, websocket.TextMessage, msg)
 			if err != nil {
-				log.Printf("can not write message: %v", err)
+				log.Printf("can not write ping message: %v", err)
 				break
 			}
 		case <-pingLoopStopChan:
@@ -226,7 +226,7 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 	defer h.signalingClientUnregister(conn)
 	defer conn.Close()
 	pingStopChan := make(chan int)
-	go h.StartPingLoop(conn, pingStopChan, h.safeSignalingWriteMessage)
+	go h.startPingLoop(conn, pingStopChan, h.safeSignalingWriteMessage)
 	defer close(pingStopChan)
 	for {
 		t, reqMsg, err := conn.ReadMessage()
@@ -383,10 +383,10 @@ type gamepadButton struct {
 
 type gamepadRequest struct {
 	commonRequest
-	Uid        string
-	PeerUid    string
-	Buttons    []*gamepadButton
-	Axes       []float64
+	Uid     string
+	PeerUid string
+	Buttons []*gamepadButton
+	Axes    []float64
 }
 
 type gamepadResponse struct {
@@ -420,7 +420,7 @@ func (h *HttpHandler) gamepadLoop(conn *websocket.Conn) {
 	defer h.gamepadClientUnregister(conn)
 	defer conn.Close()
 	pingStopChan := make(chan int)
-	go h.StartPingLoop(conn, pingStopChan, h.safeGamepadWriteMessage)
+	go h.startPingLoop(conn, pingStopChan, h.safeGamepadWriteMessage)
 	defer close(pingStopChan)
 	for {
 		t, reqMsg, err := conn.ReadMessage()

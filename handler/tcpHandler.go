@@ -29,6 +29,35 @@ type TcpHandler struct {
         forwarder *Forwarder
 }
 
+type CommonGamepadMessage struct {
+        Command string
+        Error   string
+}
+
+type gamepadVibration struct {
+        Duration        float64
+        StartDelay      float64
+        StrongMagnitude float64
+        WeakMagnitude   float64
+}
+
+type gamepadButton struct {
+        Pressed bool
+        Touched bool
+        Value   int64
+}
+
+type GamepadMessage struct {
+        commonGamepadMessage
+        Uid     string
+        PeerUid string
+        Buttons []*gamepadButton
+        Axes    []float64
+        Vibration gamepadVibration
+}
+
+
+
 func (t *TcpHandler) onFromWs(msg []byte) {
 	// XXXX
 	//log.Printf("received %v", string(msg))
