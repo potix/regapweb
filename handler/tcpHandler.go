@@ -53,7 +53,7 @@ type GamepadState struct {
 }
 
 type GamepadMessage struct {
-        CommonGamepadMessage
+        *CommonGamepadMessage
 	State     *GamepadState
         Vibration *GamepadVibration
 }
