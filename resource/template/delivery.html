@@ -48,6 +48,18 @@
                         </div>
 		</p>
 		<p>
+                        <div class="inline-block">
+                                Remote gamepads:
+                        </div>
+                        <div class="inline-block" id="div_for_remote_gamepads">
+                                <select v-model="selectedRemoteGamepad">
+                                        <option v-for="remoteGamepad in remoteGamepads" v-bind:value="remoteGamepad">
+                                        {{ "{{remoteGamepad}}" }}
+                                        </option>
+                                </select>
+                        </div>
+                </p>
+		<p>
 			<button type="button" onclick="startLocalVideo();">Start video</button>
 			<div>
 				<video id="local_video" autoplay style="width: 960px; height: 540px; border: 1px solid black;" ></video>

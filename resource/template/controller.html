@@ -17,18 +17,6 @@
 		</p>
 		<p>
 			<div class="inline-block">
-				Remote gamepads:
-			</div>
-			<div class="inline-block" id="div_for_remote_gamepads">
-				<select v-model="selectedRemoteGamepad">
-					<option v-for="remoteGamepad in remoteGamepads" v-bind:value="remoteGamepad">
-					{{ "{{remoteGamepad}}" }}
-					</option>
-				</select>
-			</div>
-		</p>
-		<p>
-			<div class="inline-block">
 				Uid:
 			</div>
 			<div class="inline-block">
@@ -64,10 +52,18 @@
                 </p>
 		<p>
 			<div class="inline-block">
-				PeerUid:
+				Peer Uid:
 			</div>
 			<div class="inline-block">
 				<input id="peer_uid" type="text" size="32" readonly>
+			</div>
+		</p>
+		<p>
+			<div class="inline-block">
+				Remote Gamepad Id:
+			</div>
+			<div class="inline-block">
+				<input id="remote_gamepad_id" type="text" size="32" readonly>
 			</div>
 		</p>
 		<p>

@@ -150,7 +150,9 @@ func main() {
         if err != nil {
                 log.Fatalf("can not start http server: %v", err)
         }
+	newForwarder.Start()
         signal.SignalWait(nil)
+	newForwarder.Stop()
         newHttpServer.Stop()
         newTcpServer.Stop()
 }

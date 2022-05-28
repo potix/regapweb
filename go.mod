@@ -6,9 +6,9 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
-	github.com/potix/utils/configurator v0.0.0-20220527070251-cb102bc37169
-	github.com/potix/utils/server v0.0.0-20220527070251-cb102bc37169
-	github.com/potix/utils/signal v0.0.0-20220527070251-cb102bc37169
+	github.com/potix/utils/configurator v0.0.0-20220528212729-ab4073917878
+	github.com/potix/utils/server v0.0.0-20220528212729-ab4073917878
+	github.com/potix/utils/signal v0.0.0-20220528212729-ab4073917878
 )
 
 require (

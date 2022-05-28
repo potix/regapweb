@@ -6,7 +6,6 @@ import (
         "net"
         "time"
         "bufio"
-	"io"
         "sync"
         "github.com/google/uuid"
         "crypto/sha256"
@@ -129,11 +128,8 @@ func (h *TcpHandler) startPingLoop(conn net.Conn, pingLoopStopChan chan int) {
 			msgBytes = append(msgBytes, byte('\n'))
                         _, err = conn.Write(msgBytes)
                         if err != nil {
-				if err == io.EOF {
-					return
-				} else {
-					log.Printf("can not write ping message: %v", err)
-				}
+				log.Printf("can not write ping message: %v", err)
+				return
                         }
                 case <-pingLoopStopChan:
                         return
@@ -229,11 +225,16 @@ func (t *TcpHandler) forwardUnregisterRequest(remoteGamepadId string) {
 }
 
 func (t *TcpHandler) OnAccept(conn net.Conn) {
-	log.Printf("on accept")
+	if t.verbose {
+		log.Printf("start handshake")
+	}
 	remoteGamepadId, err := t.handshake(conn)
 	if err != nil {
 		log.Printf("can not handshakea: %v", err)
 		return
+	}
+	if t.verbose {
+		log.Printf("end handshake")
 	}
 	defer t.forwardUnregisterRequest(remoteGamepadId)
 	conn.SetDeadline(time.Time{})
@@ -245,12 +246,8 @@ func (t *TcpHandler) OnAccept(conn net.Conn) {
         for {
                 patialMsgBytes, isPrefix, err := rbufio.ReadLine()
                 if err != nil {
-                        if err == io.EOF {
-                                return
-                        } else {
-				log.Printf("can not read message: %v", err)
-                                continue
-                        }
+			log.Printf("can not read message: %v", err)
+			return
                 } else if isPrefix {
                         // patial message
                         msgBytes = append(msgBytes, patialMsgBytes...)
@@ -266,6 +263,9 @@ func (t *TcpHandler) OnAccept(conn net.Conn) {
                         }
                         msgBytes = msgBytes[:0]
                         if msg.Command == "ping" {
+				if t.verbose {
+					log.Printf("recieved ping")
+				}
                                 continue
                         } else if msg.Command == "stateResponse" {
                                 if msg.Error != "" {
@@ -293,11 +293,8 @@ func (t *TcpHandler) OnAccept(conn net.Conn) {
 				resMsgBytes = append(resMsgBytes, byte('\n'))
                                 _, err = conn.Write(resMsgBytes)
                                 if err != nil {
-					if err == io.EOF {
-						return
-					} else {
-						log.Printf("can not write state response message: %v", err)
-					}
+					log.Printf("can not write state response message: %v", err)
+					return
                                 }
                         } else {
 				log.Printf("unsupportede message: %v", msg.Command)

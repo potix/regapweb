@@ -5,9 +5,8 @@ let remoteStream = new MediaStream();
 let started = false;
 let gamepads = {};
 let gamepadSocket = null;
-let stopGamepadNotifyPingValue = null;
+let stopGamepadPingLoopValue = null;
 let stopGamepadNotifyLoopValue = null;
-let stopGamepadLookupLoopValue = null;
 let gamepadTimestamp = 0;
 
 let audioOutputDeviceApp = new Vue({
@@ -61,18 +60,6 @@ let gamepadApp = new Vue({
 	}
 });
 
-let remoteGamepadApp = new Vue({
-        el: '#div_for_remote_gamepads',
-        data: {
-                selectedRemoteGamepad: '',
-                remoteGamepads: [],
-        },
-        mounted : function(){
-        },
-        methods: {
-        }
-});
-
 window.onload = function() {
 	console.log("onload: ");
 	getUserMedia();
@@ -124,25 +111,11 @@ function getAudioOutDevices() {
     });
 }
 
-function lookupLoop(socket) {
-	return setInterval(() => {
-		let req = {
-			Command: "lookupRemoteGamepadsRequest",
-		}; 
-		socket.send(JSON.stringify(req));
-	}, 5000);
-}
-
-function stopLookupLoop(value) {
-        clearInterval(value);
-}
-
 function startSignaling() {
     signalingSocket = new WebSocket("wss://" + location.host + "/webrtc", "signaling");    
     signalingSocket.onopen = event => {
         console.log("signaling open");
 	stopSignalingPingLoopValue = pingLoop(signalingSocket)
-	stopGamepadLookupLoopValue = lookupLoop(signalingSocket)
 	startRegister();
     };
     signalingSocket.onmessage = event => {
@@ -195,14 +168,20 @@ function startSignaling() {
 			playRemoteVideo();
                 }
                 return
-        } else if (msg.Command == "lookupRemoteGamepadsResponse") {
-                if (msg.Error != "") {
-                        console.log("can not lookup remote gamepads: " + msg.Error);
-                } else {
-                        console.log("done lookup remote gamepads");
-                        remoteGamepadApp.remoteGamepads = msg.Results;
-                }
-                return		
+        } else if (msg.Command == "setupRemoteGamepadRequest") {
+		if (msg.Messages.length != 1) {
+			console.log("invalid setup remote gamepad request");
+			console.log(msg);
+			return
+		}
+		if (!msg.Messages[1]) {
+			console.log("no remote gamepad id in setup remote gamepad request");
+			console.log(msg);
+		}
+		const remoteGamepadId = document.getElementById('remote_gamepad_id');a
+		remoteGamepadId.value = msg.Messages[1]
+		return
+
 	} else {
 		console.log("unsupported message: " + msg.Command);
 	}
@@ -403,8 +382,8 @@ function updateGamepadsStatus() {
 	if (gamepad.timestamp != gamepadTimestamp) {
 		const uid = document.getElementById('uid');
 		const peerUid = document.getElementById('peer_uid');
-		const remoteGamepadId = remoteGamepadApp.selectedRemoteGamepad
-		if (uid.value != "" && peerUid.value != "" && remoteGamepadId != "") {
+		const remoteGamepadId = document.getElementById('remote_gamepad_id');
+		if (uid.value != "" && peerUid.value != "" && remoteGamepadId.value != "") {
 			buttons = [];
 			for (let v of gamepad.buttons) {
 				buttons.push({ "Pressed" : v.pressed, "Touched" : v.touched, "Value" : v.value })

@@ -28,14 +28,27 @@ type Forwarder struct {
         toWsChan        chan *GamepadMessage
         stopFromTcpChan chan int
         stopFromWsChan  chan int
+	started         bool
+}
+
+func (f *Forwarder)Start() {
+	f.started = true
+}
+
+func (f *Forwarder)Stop() {
+	f.started = false
 }
 
 func (f *Forwarder)ToTcp(msg *GamepadMessage) {
-	f.toTcpChan <- msg
+	if f.started {
+		f.toTcpChan <- msg
+	}
 }
 
 func (f *Forwarder)ToWs(msg *GamepadMessage) {
-	f.toWsChan <- msg
+	if f.started {
+		f.toWsChan <- msg
+	}
 }
 
 type OnFromTcp func(*GamepadMessage)
@@ -94,5 +107,6 @@ func NewForwarder(opts ...ForwarderOption) *Forwarder {
 		toWsChan:        make(chan *GamepadMessage),
 		stopFromTcpChan: make(chan int),
 		stopFromWsChan:  make(chan int),
+		started:         false,
 	}
 }

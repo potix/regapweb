@@ -40,6 +40,18 @@ let peerApp = new Vue({
         }
 });
 
+let remoteGamepadApp = new Vue({
+        el: '#div_for_remote_gamepads',
+        data: {
+                selectedRemoteGamepad: '',
+                remoteGamepads: [],
+        },
+        mounted : function(){
+        },
+        methods: {
+        }
+});
+
 window.onload = function() {
         console.log("onload: ");
         getUserMedia();
@@ -115,6 +127,14 @@ function startSignaling() {
 			peerApp.peers = msg.Results;
 		}
                 return
+	} else if (msg.Command == "lookupRemoteGamepadsResponse") {
+                if (msg.Error != "") {
+                        console.log("can not lookup remote gamepads: " + msg.Error);
+                } else {
+                        console.log("done lookup remote gamepads");
+                        remoteGamepadApp.remoteGamepads = msg.Results;
+                }
+                return
         } else if (msg.Command == "sendOfferSdpResponse") {
 		if (msg.Error != "") {
 			console.log("can not send offer sdp: " + msg.Error);
@@ -147,6 +167,9 @@ function startSignaling() {
                         sdp : msg.Messages[2],
                 });
                 setAnswer(sessionDescription);
+		const remoteGamepadId = remoteGamepadApp.selectedRemoteGamepad
+		let req = { Command : "setupRemoteGamepadRequest", Messages : [ remoteGamepadId ] };
+                socket.send(JSON.stringify(req));
                 return
         }
     }
@@ -178,7 +201,9 @@ function stopPingLoop(stopSignalingPingLoopValue) {
 function signalingLookupLoop(socket) {
         return setInterval(() => {
 		const uid = document.getElementById('uid');
-		let req = { "Command" : "lookupClientsRequest", "Messages" : [ uid.value ] };
+		let req = { Command : "lookupClientsRequest", Messages : [ uid.value ] };
+                socket.send(JSON.stringify(req));
+		req = { Command: "lookupRemoteGamepadsRequest" };
                 socket.send(JSON.stringify(req));
         }, 5000);
 }
@@ -189,8 +214,9 @@ function stopSignalingLookupLoop(stopSignalinglookupLoopValue) {
 
 function startLocalVideo() {
 	console.log(peerApp.selectedPeer);
-	if (peerApp.selectedPeer == '') {
+	if (peerApp.selectedPeer == "") {
 		console.log("noPeer");
+		return
 	}
 	const localVideo = document.getElementById('local_video'); 
 	localVideo.pause();
