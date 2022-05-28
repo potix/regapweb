@@ -142,12 +142,12 @@ func (h *TcpHandler) startPingLoop(conn net.Conn, pingLoopStopChan chan int) {
 }
 
 type TcpClientRegisterRequest struct {
-	CommonMessage
+	*CommonMessage
 	Digest string
 }
 
 type TcpClientRegisterResponse struct {
-	CommonMessage
+	*CommonMessage
 	Error           string
 	RemoteGamepadId string
 }
@@ -194,7 +194,7 @@ func (t *TcpHandler) handshake(conn net.Conn) (string, error) {
 				}
 				t.forwarder.ToWs(forwardMsg)
 				t.tcpClientRegister(conn, remoteGamepadId)
-                                resMsg := &GamepadMessage{
+                                resMsg := &TcpClientRegisterResponse{
                                         CommonMessage: &CommonMessage{
                                                 Command: "registerResponse",
                                         },
