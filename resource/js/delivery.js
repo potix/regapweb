@@ -167,9 +167,9 @@ function startSignaling() {
                         sdp : msg.Messages[2],
                 });
                 setAnswer(sessionDescription);
-		const remoteGamepadId = remoteGamepadApp.selectedRemoteGamepad
-		let req = { Command : "setupRemoteGamepadRequest", Messages : [ remoteGamepadId ] };
-                socket.send(JSON.stringify(req));
+		let req = { Command : "setupRemoteGamepadRequest",
+			    Messages : [ peerApp.selectedPeer, uid.value, remoteGamepadApp.selectedRemoteGamepad ] };
+                signalingSocket.send(JSON.stringify(req));
                 return
         }
     }

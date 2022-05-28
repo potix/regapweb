@@ -437,6 +437,35 @@ func (h *HttpHandler) signalingLoop(conn *websocket.Conn) {
 				log.Printf("can not write message: %v", err)
 				continue
 			}
+		} else if req.Command == "setupRemoteGamepadRequest" {
+			errMsg := ""
+			if req.Messages != nil && len(req.Messages) != 3 {
+				errMsg = fmt.Sprintf("invalid Message: %v", req.Messages)
+			} else {
+				foundConn := h.getSignalingClientConn(req.Messages[0])
+				if foundConn == nil {
+					errMsg = fmt.Sprintf("not found uid: %v", req.Messages)
+				} else {
+					err := h.safeSignalingWriteMessage(foundConn, websocket.TextMessage, reqMsg)
+					if err != nil {
+						errMsg = fmt.Sprintf("can not forward message: %v", req.Messages)
+					}
+				}
+			}
+			res := &signalingResponse{
+				CommonMessage: &CommonMessage{ Command: "setupRemoteGamepadResponse" },
+				Error: errMsg,
+			}
+			resMsg, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("can not marshal to json: %v", err)
+				continue
+			}
+			err = h.safeSignalingWriteMessage(conn,websocket.TextMessage, resMsg)
+			if err != nil {
+				log.Printf("can not write message: %v", err)
+				continue
+			}
 		} else {
 			log.Printf("unsupported request: %v", req.Command)
 		}

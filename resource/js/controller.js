@@ -169,17 +169,17 @@ function startSignaling() {
                 }
                 return
         } else if (msg.Command == "setupRemoteGamepadRequest") {
-		if (msg.Messages.length != 1) {
+		if (msg.Messages.length != 3) {
 			console.log("invalid setup remote gamepad request");
 			console.log(msg);
 			return
 		}
-		if (!msg.Messages[1]) {
+		if (!msg.Messages[2]) {
 			console.log("no remote gamepad id in setup remote gamepad request");
 			console.log(msg);
 		}
-		const remoteGamepadId = document.getElementById('remote_gamepad_id');a
-		remoteGamepadId.value = msg.Messages[1]
+		const remoteGamepadId = document.getElementById('remote_gamepad_id');
+		remoteGamepadId.value = msg.Messages[2]
 		return
 
 	} else {
@@ -392,7 +392,7 @@ function updateGamepadsStatus() {
 				"Command": "stateRequest",
 				"Uid":     uid.value,
 				"PeerUid": peerUid.value,
-				"RemoteGamepadId": remoteGamepadId,
+				"RemoteGamepadId": remoteGamepadId.value,
 				"State": {
 					"Buttons": buttons,
 					"Axes":    gamepad.axes,
