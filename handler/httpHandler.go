@@ -469,7 +469,7 @@ type GamepadVibrationMessage struct {
 type GamepadButtonMessage struct {
         Pressed bool
         Touched bool
-        Value   int64
+        Value   float64
 }
 
 type GamepadStateMessage struct {
@@ -632,5 +632,6 @@ func NewHttpHandler(resourcePath string, accounts map[string]string, forwarder *
                 forwarder:        forwarder,
 		signalingClients: make(map[*websocket.Conn]*signalingClient),
 		gamepadClients:   make(map[*websocket.Conn]*gamepadClient),
+		remoteGamepads:   make(map[string] int),
         }, nil
 }
