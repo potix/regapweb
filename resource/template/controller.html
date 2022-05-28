@@ -17,10 +17,10 @@
 		</p>
 		<p>
 			<div class="inline-block">
-				Gamepads:
+				Remote gamepads:
 			</div>
 			<div class="inline-block" id="div_for_remote_gamepads">
-				<select v-model="selectedRemoteGamepad" v-on:change="updateTimestamp">
+				<select v-model="selectedRemoteGamepad">
 					<option v-for="remoteGamepad in remoteGamepads" v-bind:value="remoteGamepad">
 					{{ "{{remoteGamepad}}" }}
 					</option>

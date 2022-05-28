@@ -561,7 +561,7 @@ func (h *HttpHandler) gamepadLoop(conn *websocket.Conn) {
 		}
 		var msg GamepadMessage
 		if err := json.Unmarshal(msgBytes, &msg); err != nil {
-			log.Printf("can not unmarshal message: %v", err)
+			log.Printf("can not unmarshal message: %v, %v", string(msgBytes), err)
 			continue
 		}
 		if msg.Command == "ping" {

@@ -436,9 +436,10 @@ function notifyLoop(socket) {
 		if (uid.value != "" && peerUid.value != "") {
 			let req = {
 				Command: "notify",
-				Uid:     uid,
-				PeerUid: peerUid,
-			}; 
+				Uid:     uid.value,
+				PeerUid: peerUid.value,
+			};
+			console.log(req);
 			socket.send(JSON.stringify(req));
 		}
 	}, 2000);
