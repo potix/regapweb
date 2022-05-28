@@ -24,21 +24,21 @@ func ForwarderVerbose(verbose bool) ForwarderOption {
 
 type Forwarder struct {
 	opts            *forwarderOptions
-        toTcpChan       chan []byte
-        toWsChan        chan []byte
+        toTcpChan       chan *GamepadMessage
+        toWsChan        chan *GamepadMessage
         stopFromTcpChan chan int
         stopFromWsChan  chan int
 }
 
-func (f *Forwarder)ToTcp(msg []byte) {
+func (f *Forwarder)ToTcp(msg *GamepadMessage) {
 	f.toTcpChan <- msg
 }
 
-func (f *Forwarder)ToWs(msg []byte) {
+func (f *Forwarder)ToWs(msg *GamepadMessage) {
 	f.toWsChan <- msg
 }
 
-type OnFromTcp func([]byte)
+type OnFromTcp func(*GamepadMessage)
 
 func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 	go func() {
@@ -59,7 +59,7 @@ func (f *Forwarder) StopFromTcpListener() {
 	close(f.stopFromTcpChan)
 }
 
-type OnFromWs func([]byte)
+type OnFromWs func(*GamepadMessage)
 
 func (f *Forwarder) StartFromWsListener(fn OnFromWs) {
 	go func() {
@@ -90,8 +90,8 @@ func NewForwarder(opts ...ForwarderOption) *Forwarder {
         }
 	return &Forwarder{
 		opts:            baseOpts,
-		toTcpChan:       make(chan []byte),
-		toWsChan:        make(chan []byte),
+		toTcpChan:       make(chan *GamepadMessage),
+		toWsChan:        make(chan *GamepadMessage),
 		stopFromTcpChan: make(chan int),
 		stopFromWsChan:  make(chan int),
 	}

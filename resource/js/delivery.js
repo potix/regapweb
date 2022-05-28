@@ -107,11 +107,11 @@ function startSignaling() {
                         console.log("done register");
                 }
                 return
-        } else if (msg.Command == "lookupResponse") {
+        } else if (msg.Command == "lookupClientsResponse") {
 		if (msg.Error != "") {
-			console.log("can not lookup: " + msg.Error);
+			console.log("can not lookup clients: " + msg.Error);
 		} else {
-			console.log("done lookup");
+			console.log("done lookup clients");
 			peerApp.peers = msg.Results;
 		}
                 return
@@ -178,7 +178,7 @@ function stopPingLoop(stopSignalingPingLoopValue) {
 function signalingLookupLoop(socket) {
         return setInterval(() => {
 		const uid = document.getElementById('uid');
-		let req = { "Command" : "lookupRequest", "Messages" : [ uid.value ] };
+		let req = { "Command" : "lookupClientsRequest", "Messages" : [ uid.value ] };
                 socket.send(JSON.stringify(req));
         }, 5000);
 }

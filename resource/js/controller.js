@@ -5,7 +5,9 @@ let remoteStream = new MediaStream();
 let started = false;
 let gamepads = {};
 let gamepadSocket = null;
-let stopGamepadPingLoopValue = null;
+let stopGamepadNotifyPingValue = null;
+let stopGamepadNotifyLoopValue = null;
+let stopGamepadLookupLoopValue = null;
 let gamepadTimestamp = 0;
 
 let audioOutputDeviceApp = new Vue({
@@ -43,7 +45,7 @@ let audioOutputDeviceApp = new Vue({
 	}
 });
 
-let gamepadsApp = new Vue({
+let gamepadApp = new Vue({
 	el: '#div_for_gamepads',
 	data: {
 		selectedGamepad: 0,
@@ -57,6 +59,18 @@ let gamepadsApp = new Vue({
 			gamepadTimestamp = gamepad.timestamp;
 		}
 	}
+});
+
+let remoteGamepadApp = new Vue({
+        el: '#div_for_remote_gamepads',
+        data: {
+                selectedRemoteGamepad: '',
+                remoteGamepads: [],
+        },
+        mounted : function(){
+        },
+        methods: {
+        }
 });
 
 window.onload = function() {
@@ -110,11 +124,25 @@ function getAudioOutDevices() {
     });
 }
 
+function lookupLoop(socket) {
+	return setInterval(() => {
+		let req = {
+			Command: "lookupRemoteGamepadsRequest",
+		}; 
+		socket.send(JSON.stringify(req));
+	}, 5000);
+}
+
+function stopLookupLoop(value) {
+        clearInterval(value);
+}
+
 function startSignaling() {
     signalingSocket = new WebSocket("wss://" + location.host + "/webrtc", "signaling");    
     signalingSocket.onopen = event => {
         console.log("signaling open");
 	stopSignalingPingLoopValue = pingLoop(signalingSocket)
+	stopGamepadLookupLoopValue = lookupLoop(signalingSocket)
 	startRegister();
     };
     signalingSocket.onmessage = event => {
@@ -167,15 +195,27 @@ function startSignaling() {
 			playRemoteVideo();
                 }
                 return
+        } else if (msg.Command == "lookupRemoteGamepadsResponse") {
+                if (msg.Error != "") {
+                        console.log("can not lookup remote gamepads: " + msg.Error);
+                } else {
+                        console.log("done lookup remote gamepads");
+                        remoteGamepadApp.remoteGamepads = msg.Results;
+                }
+                return		
+	} else {
+		console.log("unsupported message: " + msg.Command);
 	}
     }
     signalingSocket.onerror = event => {
         stopPingLoop(stopSignalingPingLoopValue);
+        stopLookupLoop(stopGamepadLookupLoopValue);
         console.log("signaling error");
         console.log(event);
     }
     signalingSocket.onclose = event => {
         stopPingLoop(stopSignalingPingLoopValue);
+        stopLookupLoop(stopGamepadLookupLoopValue);
         console.log("signaling close");
         console.log(event);
     }
@@ -336,7 +376,7 @@ function prepareGamepads() {
 
 function connectHandler(e) {
 	gamepads[e.gamepad.index] = e.gamepad;
-	gamepadsApp.gamepads = gamepads;
+	gamepadApp.gamepads = gamepads;
 	const rAF = window.requestAnimationFrame ||
 	            window.mozRequestAnimationFrame ||
 	            window.webkitRequestAnimationFrame
@@ -359,21 +399,25 @@ function scanGamepads() {
 
 function updateGamepadsStatus() {
 	scanGamepads();
-	gamepad = gamepads[gamepadsApp.selectedGamepad]
+	gamepad = gamepads[gamepadApp.selectedGamepad]
 	if (gamepad.timestamp != gamepadTimestamp) {
 		const uid = document.getElementById('uid');
 		const peerUid = document.getElementById('peer_uid');
-		if (uid.value != "" && peerUid.value != "") {
+		const remoteGamepadId = remoteGamepadApp.selectedRemoteGamepad
+		if (uid.value != "" && peerUid.value != "" && remoteGamepadId != "") {
 			buttons = [];
 			for (let v of gamepad.buttons) {
 				buttons.push({ "Pressed" : v.pressed, "Touched" : v.touched, "Value" : v.value })
 			}
 			let req = {
-				"Command": "gamepadRequest",
+				"Command": "stateRequest",
 				"Uid":     uid.value,
 				"PeerUid": peerUid.value,
-				"Buttons": buttons,
-				"Axes":    gamepad.axes,
+				"RemoteGamepadId": remoteGamepadId,
+				"State": {
+					"Buttons": buttons,
+					"Axes":    gamepad.axes,
+				}
 			};
 			gamepadSocket.send(JSON.stringify(req));
 			gamepadTimestamp = gamepad.timestamp;
@@ -385,11 +429,31 @@ function updateGamepadsStatus() {
 	rAF(updateGamepadsStatus);
 }
 
+function notifyLoop(socket) {
+	return setInterval(() => {
+		const uid = document.getElementById('uid');
+		const peerUid = document.getElementById('peer_uid');
+		if (uid.value != "" && peerUid.value != "") {
+			let req = {
+				Command: "notify",
+				Uid:     uid,
+				PeerUid: peerUid,
+			}; 
+			socket.send(JSON.stringify(req));
+		}
+	}, 2000);
+}
+
+function stopNotifyLoop(value) {
+        clearInterval(value);
+}
+
 function startForwardGamepad() {
     gamepadSocket = new WebSocket("wss://" + location.host + "/gamepad", "gamepad");    
     gamepadSocket.onopen = event => {
         console.log("gamepad open");
 	stopGamepadPingLoopValue = pingLoop(gamepadSocket)
+	stopGamepadNotifyLoopValue = notifyLoop(gamepadSocket)
     };
     gamepadSocket.onmessage = event => {
         console.log("gamepadSocket message");
@@ -398,25 +462,29 @@ function startForwardGamepad() {
 	if (msg.Command == "ping") {
 		console.log("ping");
 		return
-	} else if (msg.Command == "gamepadResponse") {
+	} else if (msg.Command == "stateResponse") {
 		if (msg.Error != "") {
-			console.log("can not forward gamepad: " + msg.Error);
+			console.log("can not forward gamepad state: " + msg.Error);
 		} else {
-			console.log("done forward gamepad");
+			console.log("done forward gamepad state");
 		}
 		return
 	} else if (msg.Command == "vibrationRequest") {
 		console.log("vibration request");
 		return
+	} else {
+		console.log("unsupported message: " + msg.Command);
 	}
     }
     gamepadSocket.onerror = event => {
         stopPingLoop(stopGamepadPingLoopValue);
+        stopNotifyLoop(stopGamepadNotifyLoopValue);
         console.log("gamepad error");
         console.log(event);
     }
     gamepadSocket.onclose = event => {
         stopPingLoop(stopGamepadPingLoopValue);
+        stopNotifyLoop(stopGamepadNotifyLoopValue);
         console.log("gamepad close");
         console.log(event);
     }
