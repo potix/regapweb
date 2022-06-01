@@ -55,7 +55,9 @@ let gamepadApp = new Vue({
 	methods: {
 		updateTimestamp: function() {
 			let gamepad = gamepads[this.selectedGamepad];
-			gamepadTimestamp = gamepad.timestamp;
+			if (gamepad) {
+				gamepadTimestamp = gamepad.timestamp;
+			}
 		}
 	}
 });
@@ -188,13 +190,11 @@ function startSignaling() {
     }
     signalingSocket.onerror = event => {
         stopPingLoop(stopSignalingPingLoopValue);
-        stopLookupLoop(stopGamepadLookupLoopValue);
         console.log("signaling error");
         console.log(event);
     }
     signalingSocket.onclose = event => {
         stopPingLoop(stopSignalingPingLoopValue);
-        stopLookupLoop(stopGamepadLookupLoopValue);
         console.log("signaling close");
         console.log(event);
     }
@@ -378,8 +378,11 @@ function scanGamepads() {
 
 function updateGamepadsStatus() {
 	scanGamepads();
-	gamepad = gamepads[gamepadApp.selectedGamepad]
-	if (gamepad.timestamp != gamepadTimestamp) {
+	let changed = false;
+	gamepad = gamepads[gamepadApp.selectedGamepad];
+	console.log(gamepad)
+	if (gamepad && gamepad.timestamp != gamepadTimestamp) {
+		console.log(gamepad);
 		const uid = document.getElementById('uid');
 		const peerUid = document.getElementById('peer_uid');
 		const remoteGamepadId = document.getElementById('remote_gamepad_id');
@@ -436,8 +439,8 @@ function startForwardGamepad() {
 	stopGamepadNotifyLoopValue = notifyLoop(gamepadSocket)
     };
     gamepadSocket.onmessage = event => {
-        console.log("gamepadSocket message");
-        console.log(event);
+        //console.log("gamepadSocket message");
+        //console.log(event);
 	let msg = JSON.parse(event.data);
 	if (msg.Command == "ping") {
 		console.log("ping");
@@ -451,6 +454,18 @@ function startForwardGamepad() {
 		return
 	} else if (msg.Command == "vibrationRequest") {
 		console.log("vibration request");
+		console.log(msg);
+		gamepad = gamepads[gamepadApp.selectedGamepad];
+		if (gamepad.vibrationActuator) {
+			gamepad.vibrationActuator.playEffect('dual-rumble', {
+				startDelay: msg.Vibration.startDelay,
+				duration: msg.Vibration.Duration,
+				weakMagnitude: msg.Vibration.WeakMagnitude,
+				strongMagnitude: msg.Vibration.StrongMagnitude,
+			});
+		} else if (gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+			hapticActuator[0].pluse(msg.Vibration.StrongMagnitude, msg.Vibration.Duration);
+		}
 		return
 	} else {
 		console.log("unsupported message: " + msg.Command);

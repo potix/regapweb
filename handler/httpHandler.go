@@ -94,7 +94,7 @@ func (h *HttpHandler) onFromTcp(msg *GamepadMessage) {
 		h.remoteGamepadUnregister(msg.RemoteGamepadId)
 	} else if msg.Command == "vibrationRequest" {
 		conn := h.getGamepadClientConn(msg.Uid, msg.PeerUid)
-		if conn != nil {
+		if conn == nil {
 			log.Printf("not found connection for gamepadVibrationRequest: uid = %v, peer uid = %v",
 			    msg.Uid, msg.PeerUid)
 			return
@@ -530,8 +530,12 @@ func (h *HttpHandler) gamepadClientUnregister(conn *websocket.Conn) {
 
 func (h *HttpHandler) gamepadClientUpdate(conn *websocket.Conn, uid string, peerUid string) {
 	h.gamepadClientsMutex.Lock()
-	client := h.gamepadClients[conn]
-	h.gamepadClientsMutex.Unlock()
+	defer h.gamepadClientsMutex.Unlock()
+	client, ok := h.gamepadClients[conn]
+	if !ok {
+		log.Printf("not found connection")
+		return
+	}
 	client.uid = uid
 	client.peerUid = peerUid
 }
@@ -541,8 +545,12 @@ func (h *HttpHandler) checkIdsGamepadClient(conn *websocket.Conn, uid string, pe
 		return false
 	}
 	h.gamepadClientsMutex.Lock()
-	client := h.gamepadClients[conn]
-	h.gamepadClientsMutex.Unlock()
+	defer h.gamepadClientsMutex.Unlock()
+	client, ok := h.gamepadClients[conn]
+	if !ok {
+		log.Printf("not found connection")
+		return false
+	}
 	if client.uid == uid && client.peerUid == peerUid {
 		return true
 	}
@@ -565,8 +573,11 @@ func (h *HttpHandler) getGamepadClientConn(uid string, peerUid string) *websocke
 
 func (h *HttpHandler) safeGamepadWriteMessage(conn *websocket.Conn, messageType int, message []byte) error {
 	h.gamepadClientsMutex.Lock()
-	client := h.gamepadClients[conn]
-	h.gamepadClientsMutex.Unlock()
+	defer h.gamepadClientsMutex.Unlock()
+	client, ok := h.gamepadClients[conn]
+	if !ok {
+		return fmt.Errorf("not found connection")
+	}
 	client.writeMutex.Lock()
 	defer client.writeMutex.Unlock()
 	return conn.WriteMessage(messageType, message)
@@ -594,8 +605,10 @@ func (h *HttpHandler) gamepadLoop(conn *websocket.Conn) {
 			continue
 		}
 		if msg.Command == "ping" {
+			log.Printf("ping")
 			continue
 		} else if msg.Command == "notify" {
+			log.Printf("notify %v", msg)
 			if h.findPairSignalingClient(msg.Uid, msg.PeerUid) {
 				h.gamepadClientUpdate(conn, msg.Uid, msg.PeerUid)
 			} else {
