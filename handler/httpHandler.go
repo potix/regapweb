@@ -200,7 +200,7 @@ func (h *HttpHandler) startPingLoop(conn *websocket.Conn, pingLoopStopChan chan 
 			err = writeMessage(conn, websocket.TextMessage, msgBytes)
 			if err != nil {
 				log.Printf("can not write ping message: %v", err)
-				break
+				return
 			}
 		case <-pingLoopStopChan:
 			return
