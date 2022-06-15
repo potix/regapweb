@@ -380,30 +380,26 @@ function updateGamepadsStatus() {
 	scanGamepads();
 	let changed = false;
 	gamepad = gamepads[gamepadApp.selectedGamepad];
-	console.log(gamepad)
-	if (gamepad && gamepad.timestamp != gamepadTimestamp) {
-		console.log(gamepad);
-		const uid = document.getElementById('uid');
-		const peerUid = document.getElementById('peer_uid');
-		const remoteGamepadId = document.getElementById('remote_gamepad_id');
-		if (uid.value != "" && peerUid.value != "" && remoteGamepadId.value != "") {
-			buttons = [];
-			for (let v of gamepad.buttons) {
-				buttons.push({ "Pressed" : v.pressed, "Touched" : v.touched, "Value" : v.value })
-			}
-			let req = {
-				"Command": "stateRequest",
-				"Uid":     uid.value,
-				"PeerUid": peerUid.value,
-				"RemoteGamepadId": remoteGamepadId.value,
-				"State": {
-					"Buttons": buttons,
-					"Axes":    gamepad.axes,
-				}
-			};
-			gamepadSocket.send(JSON.stringify(req));
-			gamepadTimestamp = gamepad.timestamp;
+	const uid = document.getElementById('uid');
+	const peerUid = document.getElementById('peer_uid');
+	const remoteGamepadId = document.getElementById('remote_gamepad_id');
+	if (uid.value != "" && peerUid.value != "" && remoteGamepadId.value != "") {
+		buttons = [];
+		for (let v of gamepad.buttons) {
+			buttons.push({ "Pressed" : v.pressed, "Touched" : v.touched, "Value" : v.value })
 		}
+		let req = {
+			"Command": "stateRequest",
+			"Uid":     uid.value,
+			"PeerUid": peerUid.value,
+			"RemoteGamepadId": remoteGamepadId.value,
+			"State": {
+				"Buttons": buttons,
+				"Axes":    gamepad.axes,
+			}
+		};
+		gamepadSocket.send(JSON.stringify(req));
+		gamepadTimestamp = gamepad.timestamp;
 	}
 	const rAF = window.requestAnimationFrame ||
 	 	    window.mozRequestAnimationFrame ||
