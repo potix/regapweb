@@ -12,7 +12,7 @@
 				Name:
 			</div>
 			<div class="inline-block">
-				<input id="name" type="text" size="32" value="" placeholder="your name">
+				<input id="name" type="text" size="32" v-model="value" :readonly="readonly"  v-on:change="onChange" placeholder="your name">
 			</div>
 		</p>
 	        <p>

@@ -6,6 +6,21 @@ let peerConnection = null;
 let completeSdpOffer = false;
 let completeAnswerSdp = false;
 
+let nameApp = new Vue({
+        el: '#name',
+        data: {
+                value: '',
+                readonly: false,
+        },
+        mounted : function(){
+        },
+        methods: {
+                onChange: function() {
+                        console.log("change name");
+                },
+        }
+});
+
 let videoInputDeviceApp = new Vue({
         el: '#div_for_video_input_devices',
         data: {
@@ -107,8 +122,7 @@ function startWebsocket() {
         console.log("websocket open");
         stopPingLoopValue = pingLoop(websocket)
         stopLookupLoopValue = lookupLoop(websocket)
-	const name = document.getElementById('name');
-        let req = { MsgType: "registerReq", RegisterRequest: { ClientName: name.value } };
+        let req = { MsgType: "registerReq", RegisterRequest: { ClientName: nameApp.value } };
         websocket.send(JSON.stringify(req));
     };
     websocket.onmessage = event => {
@@ -306,6 +320,7 @@ function startLocalVideo() {
 	console.log(delivererId.value);
 	console.log(controllerApp.selectedController);
 	console.log(gamepadApp.selectedGamepad);
+	nameApp.readonly = true;
 	videoInputDeviceApp.progress = true;
 	audioInputDeviceApp.progress = true;
 	controllerApp.progress = true;
@@ -406,11 +421,10 @@ function sendOfferSdp(sessionDescription) {
 	console.log('--- sending offer sdp ---');
 	const textForSendSdp = document.getElementById('text_for_send_sdp');
 	textForSendSdp.value = sessionDescription.sdp;
-	const name = document.getElementById('name');
 	const delivererId = document.getElementById('uid');
 	let req = { MsgType: "sigOfferSdpReq",
 		    SignalingSdpRequest: {
-			    Name: name.value,
+			    Name: nameApp.value,
 			    DelivererId: delivererId.value,
 			    ControllerId: controllerApp.selectedController,
 			    GamepadId: gamepadApp.selectedGamepad,
@@ -469,6 +483,7 @@ function hangUp(){
 	localVideo.srcObject = localStream = null;
 	completeSdpOffer = false;
 	completeAnswerSdp = false;
+	nameApp.readonly = false;
 	videoInputDeviceApp.progress = false;
 	audioInputDeviceApp.progress = false;
 	controllerApp.progress = false;

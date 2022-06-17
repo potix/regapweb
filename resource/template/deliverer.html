@@ -11,14 +11,16 @@
 			<div class="inline-block">
 				Uid:
 			</div>
-			<input id="uid" type="text" size="32" value="" readonly />
+			<div class="inline-block">
+				<input id="uid" type="text" size="32" value="" readonly />
+			</div>
                 </p>
 		<p>
                         <div class="inline-block">
                                 Name:
                         </div>
                         <div class="inline-block">
-                                <input id="name" type="text" size="32" value="" placeholder="your name">
+				 <input id="name" type="text" size="32" v-model="value" :readonly="readonly"  v-on:change="onChange" placeholder="your name">
                         </div>
                 </p>
 		<p>

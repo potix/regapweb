@@ -9,6 +9,21 @@ let completeSdpOffer = false;
 let completeAnswerSdp = false;
 let completeConnectGamepad = false;
 
+let nameApp = new Vue({
+	el: '#name',
+	data: {
+		value: '',
+		readonly: false,
+	},
+	mounted : function(){ 
+	},
+	methods: {
+		onChange: function() {
+			console.log("change name");
+		},
+	}
+});
+
 let audioOutputDeviceApp = new Vue({
 	el: '#div_for_audio_output_devices',
 	data: {
@@ -72,6 +87,7 @@ async function start() {
 	console.log('play remote video');
 	try {
 		started = true;
+		nameApp.readonly = true;
 		const startLamp = document.getElementById('start_lamp');
 		startLamp.setAttribute("class", "border-radius background-color-green inline-block" )
 		const remoteVideo = document.getElementById('remote_video');
@@ -335,8 +351,7 @@ function stopPingLoop(value) {
 function startRegister() {
 	if (started == true) {
 		console.log("start register")
-		const name = document.getElementById('name');
-		let req = { MsgType: "registerReq", RegisterRequest: { ClientName: name.value } };
+		let req = { MsgType: "registerReq", RegisterRequest: { ClientName: nameApp.value } };
 		websocket.send(JSON.stringify(req));
 	} else {
 		console.log("retry register")
@@ -459,10 +474,9 @@ function sendAnswerSdp(sessionDescription) {
 	const controllerId = document.getElementById('uid');
 	const delivererId = document.getElementById('deliverer');
 	const gamepadId = document.getElementById('gamepad');
-	const name = document.getElementById('name');
         let req = { MsgType: "sigAnswerSdpReq",
 		    SignalingSdpRequest: {
-			    Name: name.value,
+			    Name: nameApp.value,
 			    DelivererId: delivererId.value,
 			    ControllerId: controllerId.value,
 			    GamepadId: gamepadId.value,
@@ -507,6 +521,7 @@ function hangUp(){
 	completeSdpOffer = false;
         completeAnswerSdp = false;
         completeConnectGamepad = false;
+	nameApp.readonly = false;
 }
 
 function prepareGamepads() {
@@ -571,7 +586,7 @@ function updateGamepadsStatus() {
 			Buttons: buttons,
 			Axes: gamepad.axes,
 		};
-		gamepadSocket.send(JSON.stringify(req));
+		websocket.send(JSON.stringify(msg));
 		gamepadTimestamp = gamepad.timestamp;
 	}
 	const rAF = window.requestAnimationFrame ||
