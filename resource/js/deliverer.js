@@ -119,12 +119,16 @@ function startWebsocket() {
                         console.log("could not register: " + msg.Error.Message);
 			return
                 }
-		if (msg.RegisterResponse == null || msg.RegisterResponse.ClientId == "") {
+		if (!msg.RegisterResponse || msg.RegisterResponse.ClientId == "") {
                         console.log("no parameter in registerRes");
 			return
 		}
-		const uid = document.getElementById('uid');
-		uid.value =  msg.RegisterResponse.ClientId
+		if (msg.RegisterResponse.ClientType != "deliverer") {
+			console.log("clientType mismatch in registerRes");
+			return
+                }
+		const delivererId = document.getElementById('uid');
+		delivererId.value =  msg.RegisterResponse.ClientId
                 console.log("done register");
                 return
         } else if (msg.MsgType == "lookupRes") {
@@ -132,35 +136,43 @@ function startWebsocket() {
 			console.log("could not lookup: " + msg.Error.Message);
 			return
 		}
-		if (msg.LookupResponse == null ) {
+		if (!msg.LookupResponse) {
 			console.log("no parameter in lookupRes");
 			return 
 		}
 		controllerApp.controllers = msg.LookupResponse.Controllers;
 		gamepadApp.gamepads = msg.LookupResponse.Gamepads;
 		console.log("done lookup clients");
+        } else if (msg.MsgType == "sigOfferSdpSrvErr") {
+		if (msg.Error && msg.Error.Message != "") {
+			console.log("failed in offerSdp: " + msg.Error.Message);
+			hungup();
+			return
+		}
         } else if (msg.MsgType == "sigOfferSdpRes") {
-		if (msg.SignalingSdpResponse == null ||
+		if (!msg.SignalingSdpResponse ||
 		    msg.SignalingSdpResponse.DeliveryId == "" ||
 		    msg.SignalingSdpResponse.ControllerId == "" ||
 		    msg.SignalingSdpResponse.GamepadId == "") {
 			console.log("no parameter in sigOfferSdpRes");
+			// server is untrusted
 			hungup();
 			return 
 		}
-		const uid = document.getElementById('uid');
-		if (msg.SignalingSdpResponse.DeliveryId != uid.value ||
+		const delivererId = document.getElementById('uid');
+		if (msg.SignalingSdpResponse.DeliveryId != delivererId.value ||
 		    msg.SignalingSdpResponse.ControllerId != controllerApp.selectedController ||
 		    msg.SignalingSdpResponse.GamepadId != gamepadApp.selectedGamepad) {
 			console.log("ids are mismatch in sigOfferSdpRes");
+			// XXX How to notify error to peer
 			hungup();
 			return 
 		}
 		if (msg.Error && msg.Error.Message != "") {
-			if (msg.Error.Message == "reject") {
+			if (msg.Error.Message == "rejected") {
 				alert("rejected by peer");
 			} else {
-				console.log("could not send offer sdp: " + msg.Error.Message);
+				console.log("failed in offerSdp: " + msg.Error.Message);
 			}
 			hungup();
 			return
@@ -171,13 +183,13 @@ function startWebsocket() {
         } else if (msg.MsgType == "sigAnswerSdpReq") {
 		if (!completeSdpOffer) {
 			console.log("not complete offerSdp");
-			const uid = document.getElementById('uid');
+			const delivererId = document.getElementById('uid');
 			let res = { MsgType : "sigAnswerSdpRes",
 				    Error: {
 					    Message: "not complete offerSdp"
 				    },
 				    SignalingSdpResponse : {
-					    DelivererId: uid.value,
+					    DelivererId: delivererId.value,
 					    ControllerId: controllerApp.selectedController,
 					    GamepadId: gamepadApp.selectedGamepad,
 				    }
@@ -186,41 +198,30 @@ function startWebsocket() {
 			hangup()
 			return
 		}
-		if (msg.SignalingSdpRequest == null ||
+		if (!msg.SignalingSdpRequest ||
 		    msg.SignalingSdpRequest.DeliveryId == "" ||
 		    msg.SignalingSdpRequest.ControllerId == "" ||
 		    msg.SignalingSdpRequest.GamepadId == "" ||
 		    msg.SignalingSdpRequest.Sdp == "") {
 			console.log("no parameter in sigAnswerSdpReq");
-			const uid = document.getElementById('uid');
-			let res = { MsgType : "sigAnswerSdpRes",
-				    Error: {
-					    Message: "no parameter in sigAnswerSdpReq"
-				    },
-				    SignalingSdpResponse : {
-					    DelivererId: uid.value,
-					    ControllerId: controllerApp.selectedController,
-					    GamepadId: gamepadApp.selectedGamepad,
-				    }
-			          };
-			websocket.send(JSON.stringify(res));
+			// server is untrusted
 			hangup()
 			return 
 		}
-		const uid = document.getElementById('uid');
-		if (msg.SignalingSdpRequest.DeliveryId != uid.value ||
+		const delivererId = document.getElementById('uid');
+		if (msg.SignalingSdpRequest.DeliveryId != delivererId.value ||
 		    msg.SignalingSdpRequest.ControllerId != controllerApp.selectedController ||
 		    msg.SignalingSdpRequest.GamepadId != gamepadApp.selectedGamepad) {
 			console.log("ids are mismatch in sigAnswerSdpReq");
-			const uid = document.getElementById('uid');
+			const delivererId = document.getElementById('uid');
 			let res = { MsgType : "sigAnswerSdpRes",
 				    Error: {
 					    Message: "ids are mismatch in sigAnswerSdpReq"
 				    },
 				    SignalingSdpResponse : {
-					    DelivererId: uid.value,
-					    ControllerId: controllerApp.selectedController,
-					    GamepadId: gamepadApp.selectedGamepad,
+					    DelivererId: msg.SignalingSdpRequest.DeliveryId,
+					    ControllerId: msg.SignalingSdpRequest.ControllerId,
+					    GamepadId: msg.SignalingSdpRequest.GamepadId
 				    }
 			          };
 			websocket.send(JSON.stringify(res));
@@ -236,7 +237,16 @@ function startWebsocket() {
                 });
                 setAnswer(sessionDescription);
                 return
-        }
+        } else if (msg.MsgType == "sigAnswerSdpSrvErr") {
+		if (msg.Error && msg.Error.Message != "") {
+			console.log("failed in answerSdp: " + msg.Error.Message);
+			// XXX How to notify error to peer
+			hungup();
+			return
+		}
+        } else {
+		 console.log("unsupported message: " + msg.MsgType);
+	}
     }
     websocket.onerror = event => {
 	stopPingLoop(stopPingLoopValue);
@@ -275,8 +285,8 @@ function stopLookupLoop(stopLookupLoopValue) {
 }
 
 function startLocalVideo() {
-	const uid = document.getElementById('uid');
-	if (uid.value == "") {
+	const delivererId = document.getElementById('uid');
+	if (delivererId.value == "") {
 		console.log("no uid");
 		return
 	}
@@ -288,7 +298,7 @@ function startLocalVideo() {
 		console.log("no select gamepad");
 		return
 	}
-	console.log(uid.value);
+	console.log(delivererId.value);
 	console.log(controllerApp.selectedController);
 	console.log(gamepadApp.selectedGamepad);
 	const localVideo = document.getElementById('local_video'); 
@@ -388,11 +398,11 @@ function sendOfferSdp(sessionDescription) {
 	const textForSendSdp = document.getElementById('text_for_send_sdp');
 	textForSendSdp.value = sessionDescription.sdp;
 	const name = document.getElementById('name');
-	const uid = document.getElementById('uid');
-	let req = { MsgType : "sigOfferSdpReq",
-		    SignalingSdpRequest : {
-			    Name: name,
-			    DelivererId: uid,
+	const delivererId = document.getElementById('uid');
+	let req = { MsgType: "sigOfferSdpReq",
+		    SignalingSdpRequest: {
+			    Name: name.value,
+			    DelivererId: delivererId.value,
 			    ControllerId: controllerApp.selectedController,
 			    GamepadId: gamepadApp.selectedGamepad,
 			    Sdp: sessionDescription.sdp
@@ -405,24 +415,26 @@ async function setAnswer(sessionDescription) {
     try{
         await peerConnection.setRemoteDescription(sessionDescription);
         console.log('setRemoteDescription(answer) succsess in promise');
-	const uid = document.getElementById('uid');
+	const delivererId = document.getElementById('uid');
 	let res = { MsgType : "sigAnswerSdpRes",
 		    SignalingSdpResponse : {
-			    DelivererId: uid.value,
+			    DelivererId: delivererId.value,
 			    ControllerId: controllerApp.selectedController,
 			    GamepadId: gamepadApp.selectedGamepad,
 		    }
 	          };
 	websocket.send(JSON.stringify(res));
+        console.log('succsess answerSdp');
+	completeAnswerSdp = true;
     } catch(err){
         console.error('setRemoteDescription(answer) ERROR: ', err);
-	const uid = document.getElementById('uid');
+	const delivererId = document.getElementById('uid');
 	let res = { MsgType : "sigAnswerSdpRes",
 		    Error: {
 			    Message: "could not set remote description"
 		    },
 		    SignalingSdpResponse : {
-			    DelivererId: uid.value,
+			    DelivererId: delivererId.value,
 			    ControllerId: controllerApp.selectedController,
 			    GamepadId: gamepadApp.selectedGamepad,
 		    }
