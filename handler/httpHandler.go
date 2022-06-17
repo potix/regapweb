@@ -58,7 +58,9 @@ type HttpHandler struct {
 }
 
 func (h *HttpHandler) onFromTcp(msg *message.Message) error {
-	log.Printf("onFromTcp")
+	if h.verbose {
+		log.Printf("onFromTcp")
+	}
 	if msg.MsgType == message.MsgTypeGamepadConnectRes {
 		conn, client := h.getControllerByIds(
 			msg.GamepadConnectResponse.DelivererId,

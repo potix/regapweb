@@ -45,7 +45,9 @@ type TcpHandler struct {
 }
 
 func (t *TcpHandler) onFromWs(msg *message.Message) error {
-	log.Printf("onFromWs")
+	if t.verbose {
+		log.Printf("onFromWs")
+	}
 	if msg.MsgType == message.MsgTypeGamepadConnectReq {
 		conn := t.getClientConn(msg.GamepadConnectRequest.GamepadId)
 		if conn == nil {
