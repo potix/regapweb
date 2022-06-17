@@ -851,7 +851,9 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 }
 
 func (h *HttpHandler) delivererWebsocket(c *gin.Context) {
-	log.Printf("requested /delivererws")
+	if h.verbose {
+		log.Printf("requested /delivererws")
+	}
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  4096,
 		WriteBufferSize: 4096,
@@ -868,7 +870,9 @@ func (h *HttpHandler) delivererWebsocket(c *gin.Context) {
 
 
 func (h *HttpHandler) controllerWebsocket(c *gin.Context) {
-	log.Printf("requested /controllerws")
+	if h.verbose {
+		log.Printf("requested /controllerws")
+	}
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  4096,
 		WriteBufferSize: 4096,

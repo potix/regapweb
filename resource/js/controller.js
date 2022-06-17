@@ -318,6 +318,8 @@ function startWebsocket() {
 			});
 		} else if (gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
 			hapticActuator[0].pluse(msg.GamepadVibration.StrongMagnitude, msg.GamepadVibration.Duration);
+		} else {
+			console.log("unsupported vibration");
 		}
 		return
 	} else {
@@ -585,7 +587,7 @@ function updateGamepadsStatus() {
 				Axes: gamepad.axes,
 			},
 		};
-		console.log(msg);
+		//console.log(msg);
 		websocket.send(JSON.stringify(msg));
 	}
 	const rAF = window.requestAnimationFrame ||
