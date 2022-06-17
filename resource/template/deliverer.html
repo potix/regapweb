@@ -26,7 +26,7 @@
 				Video input devices:
 			</div>
                         <div class="inline-block" id="div_for_video_input_devices">
-                                <select v-model="selectedVideoInputDevice">
+                                <select v-model="selectedVideoInputDevice" :disabled="progress">
                                         <option v-for="device in videoInputDevices" v-bind:value="device.deviceId">
                                         {{ "{{device.label}}" }}
                                         </option>
@@ -38,7 +38,7 @@
 				Audio input devices:
 			</div>
                         <div class="inline-block" id="div_for_audio_input_devices">
-                                <select v-model="selectedAudioInputDevice">
+                                <select v-model="selectedAudioInputDevice" :disabled="progress">
                                         <option v-for="device in audioInputDevices" v-bind:value="device.deviceId">
                                         {{ "{{device.label}}" }}
                                         </option>
@@ -50,7 +50,7 @@
 				Controllers:
 			</div>
                         <div class="inline-block" id="div_for_controllers">
-                                <select v-model="selectedController">
+                                <select v-model="selectedController" :disabled="progress">
                                         <option v-for="controller in controllers" v-bind:value="controller.Id">
 					{{ "{{controller.Id}}" }} ({{ "{{controller.Name}}" }})
                                         </option>
@@ -62,7 +62,7 @@
                                 Gamepads:
                         </div>
                         <div class="inline-block" id="div_for_gamepads">
-                                <select v-model="selectedGamepad">
+                                <select v-model="selectedGamepad" :disabled="progress">
                                         <option v-for="gamepad in gamepads" v-bind:value="gamepad.Id">
 					{{ "{{gamepad.Id}}" }} ({{ "{{gamepad.Name}}" }})
                                         </option>

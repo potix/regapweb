@@ -146,9 +146,9 @@ function startWebsocket() {
 		return
 	} else if (msg.MsgType == "sigOfferSdpReq") {
 		if (!msg.SignalingSdpRequest ||
-		    msg.SignalingSdpRequest.DeliveryId == ""
-		    msg.SignalingSdpRequest.ControllerId == ""
-		    msg.SignalingSdpRequest.GamepadId == ""
+		    msg.SignalingSdpRequest.DelivererId == "" ||
+		    msg.SignalingSdpRequest.ControllerId == "" ||
+		    msg.SignalingSdpRequest.GamepadId == "" ||
 		    msg.SignalingSdpRequest.Sdp == "") {
 			console.log("no parameter in sigOfferSdpReq");
 			// server is untrusted
@@ -158,11 +158,11 @@ function startWebsocket() {
 		if (controllerId.value != msg.SignalingSdpRequest.ControllerId) {
 			console.log("id mismatch in sigOfferSdpReq");
 			// server is untrusted
-			hungup();
+			handUp();
 			return
 		}
 		if (!confirm("There is an incoming call from " +
-			msg.SignalingSdpRequest.DeliveryId +
+			msg.SignalingSdpRequest.DelivererId +
 			"(" + msg.SignalingSdpRequest.Name + ")" +
 			". Do you allow it?")) {
 			const controllerId = document.getElementById('uid');
@@ -171,7 +171,7 @@ function startWebsocket() {
 					    Message: "rejected"
 				    },
 				    SignalingSdpResponse: {
-					    DelivererId: msg.SignalingSdpRequest.DeliveryId,
+					    DelivererId: msg.SignalingSdpRequest.DelivererId,
 					    ControllerId: controllerId.value,
 					    GamepadId: msg.SignalingSdpRequest.GamepadId
 				    } 
@@ -181,7 +181,7 @@ function startWebsocket() {
 		}
 		console.log('received offer text');
 		const delivererId = document.getElementById('deliverer');
-		delivererId.value = msg.SignalingSdpRequest.DeliveryId;
+		delivererId.value = msg.SignalingSdpRequest.DelivererId;
 		const gamepadId = document.getElementById('gamepad');
 		gamepadId.value = msg.SignalingSdpRequest.GamepadId;
 		const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
@@ -196,40 +196,40 @@ function startWebsocket() {
                 if (msg.Error && msg.Error.Message != "") {
                         console.log("failed in offerSdp: " + msg.Error.Message);
 			// XXX How to notify error to peer
-			hungup();
+			handUp();
                         return
                 }
 	} else if (msg.MsgType == "sigAnswerSdpSrvErr") {
                 if (msg.Error && msg.Error.Message != "") {
                         console.log("failed in answerSdp: " + msg.Error.Message);
 			// XXX How to notify error to peer
-			hungup();
+			handUp();
                         return
                 }
         } else if (msg.MsgType == "sigAnswerSdpRes") {
 		if (!msg.SignalingSdpResponse ||
-		    msg.SignalingSdpResponse.DeliveryId == ""
-		    msg.SignalingSdpResponse.ControllerId == ""
+		    msg.SignalingSdpResponse.DelivererId == "" ||
+		    msg.SignalingSdpResponse.ControllerId == "" ||
 		    msg.SignalingSdpResponse.GamepadId == "") {
 			console.log("no parameter in sigAnswerSdpRes");
 			// server is untrusted
-			hungup();
+			handUp();
 			return
 		}
 		const controllerId = document.getElementById('uid');
 		const delivererId = document.getElementById('deliverer');
 		const gamepadId = document.getElementById('gamepad');
-                if (msg.SignalingSdpResponse.DeliveryId != delivererId.value ||
+                if (msg.SignalingSdpResponse.DelivererId != delivererId.value ||
                     msg.SignalingSdpResponse.ControllerId != controllerId.value ||
                     msg.SignalingSdpResponse.GamepadId != gamepadId.value) {
                         console.log("ids are mismatch in sigOfferSdpRes");
 			// server is untrusted
-                        hungup();
+                        handUp();
                         return
                 }
                 if (msg.Error && msg.Error.Message != "") {
                         console.log("failed answerSdp: " + msg.Error.Message);
-			hungup();
+			handUp();
 			return
                 }
                 console.log("success answerSdp");
@@ -237,9 +237,6 @@ function startWebsocket() {
 		// play remote video
 		playRemoteVideo();
 		// connect to gamepad
-		const controllerId = document.getElementById('uid');
-		const delivererId = document.getElementById('deliverer');
-		const gamepadId = document.getElementById('gamepad');
 		let req = { MsgType: "gpConnectReq",
 			    GamepadConnectRequest: {
 				    DelivererId: delivererId.value,
@@ -251,36 +248,36 @@ function startWebsocket() {
                 return
         } else if (msg.MsgType == "gpConnectRes") {
 		if (!msg.GamepadConnectResponse ||
-		    msg.GamepadConnectResponse.DeliveryId == ""
-		    msg.GamepadConnectResponse.ControllerId == ""
+		    msg.GamepadConnectResponse.DelivererId == "" ||
+		    msg.GamepadConnectResponse.ControllerId == "" ||
 		    msg.GamepadConnectResponse.GamepadId == "") {
 			console.log("no parameter in gpConnectRes");
 			// server is untrusted
-			hungup();
+			handUp();
 			return
 		}
 		const controllerId = document.getElementById('uid');
 		const delivererId = document.getElementById('deliverer');
 		const gamepadId = document.getElementById('gamepad');
-                if (msg.GamepadConnectResponse.DeliveryId != delivererId.value ||
+                if (msg.GamepadConnectResponse.DelivererId != delivererId.value ||
                     msg.GamepadConnectResponse.ControllerId != controllerId.value ||
                     msg.GamepadConnectResponse.GamepadId != gamepadId.value) {
                         console.log("ids are mismatch in gpConnectRes");
 			// server is untrusted
-                        hungup();
+                        handUp();
                         return
                 }
                 if (msg.Error && msg.Error.Message != "") {
                         console.log("failed in connect gapmepad: " + msg.Error.Message);
-			hungup();
+			handUp();
 			return
                 }
 		completeConnectGamepad = true
 		return
 	} else if (msg.MsgType == "gpVibration") {
 		if (!msg.GamepadVibration ||
-		    msg.GamepadVibration.DeliveryId == ""
-		    msg.GamepadVibration.ControllerId == ""
+		    msg.GamepadVibration.DelivererId == "" ||
+		    msg.GamepadVibration.ControllerId == "" ||
 		    msg.GamepadVibration.GamepadId == "") {
 			console.log("no parameter in gpVibration");
 			// server is untrusted
@@ -289,7 +286,7 @@ function startWebsocket() {
 		const controllerId = document.getElementById('uid');
 		const delivererId = document.getElementById('deliverer');
 		const gamepadId = document.getElementById('gamepad');
-                if (msg.GamepadVibration.DeliveryId != delivererId.value ||
+                if (msg.GamepadVibration.DelivererId != delivererId.value ||
                     msg.GamepadVibration.ControllerId != controllerId.value ||
                     msg.GamepadVibration.GamepadId != gamepadId.value) {
                         console.log("ids are mismatch in gpVibration");
@@ -417,6 +414,7 @@ async function setOffer(sessionDescription) {
 		    } 
 	          };
 	websocket.send(JSON.stringify(res));
+	// server commited ids
         console.log('succsess OfferSdp');
 	completeSdpOffer = true;
         makeAnswerSdp();
@@ -436,7 +434,7 @@ async function setOffer(sessionDescription) {
 		    } 
 	          };
 	websocket.send(JSON.stringify(res));
-	hungup();
+	handUp();
     }
 }
 
@@ -462,7 +460,7 @@ function sendAnswerSdp(sessionDescription) {
 	const delivererId = document.getElementById('deliverer');
 	const gamepadId = document.getElementById('gamepad');
 	const name = document.getElementById('name');
-        let req = { MsgType: "sendAnswerSdpRequest",
+        let req = { MsgType: "sigAnswerSdpReq",
 		    SignalingSdpRequest: {
 			    Name: name.value,
 			    DelivererId: delivererId.value,
@@ -488,12 +486,16 @@ function playRemoteVideo() {
 }
 
 function hangUp(){
-        console.log('hungup');
+        console.log('handUp');
         if(peerConnection && peerConnection.iceConnectionState !== 'closed'){
                 peerConnection.close();
                 peerConnection = null;
                 console.log('peerConnection is closed.');
 	}
+	const delivererId = document.getElementById('deliverer');
+	delivererId.value = '';
+	const gamepadId = document.getElementById('gamepad');
+	gamepadId.value = '';
         const textForSendSdp = document.getElementById('text_for_send_sdp');
         textForSendSdp.value = '';
         const textToReceiveSdp = document.getElementById('text_for_receive_sdp');

@@ -11,6 +11,7 @@ let videoInputDeviceApp = new Vue({
         data: {
                 selectedVideoInputDevice: 'default',
                 videoInputDevices: [],
+		progress: false
         },
         mounted : function(){
         },
@@ -23,6 +24,7 @@ let audioInputDeviceApp = new Vue({
         data: {
                 selectedAudioInputDevice: 'default',
                 audioInputDevices: [],
+		progress: false
         },
         mounted : function(){
         },
@@ -35,6 +37,7 @@ let controllerApp = new Vue({
         data: {
                 selectedController: '',
                 controllers: [],
+		progress: false
         },
         mounted : function(){
         },
@@ -47,6 +50,7 @@ let gamepadApp = new Vue({
         data: {
                 selectedGamepad: '',
                 gamepads: [],
+		progress: false
         },
         mounted : function(){
         },
@@ -146,26 +150,26 @@ function startWebsocket() {
         } else if (msg.MsgType == "sigOfferSdpSrvErr") {
 		if (msg.Error && msg.Error.Message != "") {
 			console.log("failed in offerSdp: " + msg.Error.Message);
-			hungup();
+			hangUp();
 			return
 		}
         } else if (msg.MsgType == "sigOfferSdpRes") {
 		if (!msg.SignalingSdpResponse ||
-		    msg.SignalingSdpResponse.DeliveryId == "" ||
+		    msg.SignalingSdpResponse.DelivererId == "" ||
 		    msg.SignalingSdpResponse.ControllerId == "" ||
 		    msg.SignalingSdpResponse.GamepadId == "") {
 			console.log("no parameter in sigOfferSdpRes");
 			// server is untrusted
-			hungup();
+			hangUp();
 			return 
 		}
 		const delivererId = document.getElementById('uid');
-		if (msg.SignalingSdpResponse.DeliveryId != delivererId.value ||
+		if (msg.SignalingSdpResponse.DelivererId != delivererId.value ||
 		    msg.SignalingSdpResponse.ControllerId != controllerApp.selectedController ||
 		    msg.SignalingSdpResponse.GamepadId != gamepadApp.selectedGamepad) {
 			console.log("ids are mismatch in sigOfferSdpRes");
-			// XXX How to notify error to peer
-			hungup();
+			// server is untrusted
+			hangUp();
 			return 
 		}
 		if (msg.Error && msg.Error.Message != "") {
@@ -174,9 +178,10 @@ function startWebsocket() {
 			} else {
 				console.log("failed in offerSdp: " + msg.Error.Message);
 			}
-			hungup();
+			hangUp();
 			return
 		}
+		// server commited ids
 		completeSdpOffer = true
 		console.log("success sendOfferSdp");
                 return
@@ -199,7 +204,7 @@ function startWebsocket() {
 			return
 		}
 		if (!msg.SignalingSdpRequest ||
-		    msg.SignalingSdpRequest.DeliveryId == "" ||
+		    msg.SignalingSdpRequest.DelivererId == "" ||
 		    msg.SignalingSdpRequest.ControllerId == "" ||
 		    msg.SignalingSdpRequest.GamepadId == "" ||
 		    msg.SignalingSdpRequest.Sdp == "") {
@@ -209,7 +214,7 @@ function startWebsocket() {
 			return 
 		}
 		const delivererId = document.getElementById('uid');
-		if (msg.SignalingSdpRequest.DeliveryId != delivererId.value ||
+		if (msg.SignalingSdpRequest.DelivererId != delivererId.value ||
 		    msg.SignalingSdpRequest.ControllerId != controllerApp.selectedController ||
 		    msg.SignalingSdpRequest.GamepadId != gamepadApp.selectedGamepad) {
 			console.log("ids are mismatch in sigAnswerSdpReq");
@@ -219,7 +224,7 @@ function startWebsocket() {
 					    Message: "ids are mismatch in sigAnswerSdpReq"
 				    },
 				    SignalingSdpResponse : {
-					    DelivererId: msg.SignalingSdpRequest.DeliveryId,
+					    DelivererId: msg.SignalingSdpRequest.DelivererId,
 					    ControllerId: msg.SignalingSdpRequest.ControllerId,
 					    GamepadId: msg.SignalingSdpRequest.GamepadId
 				    }
@@ -241,7 +246,7 @@ function startWebsocket() {
 		if (msg.Error && msg.Error.Message != "") {
 			console.log("failed in answerSdp: " + msg.Error.Message);
 			// XXX How to notify error to peer
-			hungup();
+			hangUp();
 			return
 		}
         } else {
@@ -301,6 +306,10 @@ function startLocalVideo() {
 	console.log(delivererId.value);
 	console.log(controllerApp.selectedController);
 	console.log(gamepadApp.selectedGamepad);
+	videoInputDeviceApp.progress = true;
+	audioInputDeviceApp.progress = true;
+	controllerApp.progress = true;
+	gamepadApp.progress = true;
 	const localVideo = document.getElementById('local_video'); 
 	localVideo.pause();
 	console.log(videoInputDeviceApp.selectedVideoInputDevice);
@@ -445,7 +454,7 @@ async function setAnswer(sessionDescription) {
 }
 
 function hangUp(){
-	console.log('hungup');
+	console.log('hangUp');
 	if(peerConnection && peerConnection.iceConnectionState !== 'closed'){
 		peerConnection.close();
 		peerConnection = null;
@@ -458,7 +467,11 @@ function hangUp(){
 	const localVideo = document.getElementById('local_video');
 	localVideo.pause();
 	localVideo.srcObject = localStream = null;
-	completeSdpOffer = false
-	completeAnswerSdp = false
+	completeSdpOffer = false;
+	completeAnswerSdp = false;
+	videoInputDeviceApp.progress = false;
+	audioInputDeviceApp.progress = false;
+	controllerApp.progress = false;
+	gamepadApp.progress = false;
 }
 

@@ -19,6 +19,10 @@ const (
 	MsgTypeGamepadConnectServerError     = "gpConnectSrvErr"   // controller <------  server ------>  gamepad
 	MsgTypeGamepadState                  = "gpState"           // controller  ------> server  ------> gamepad (perodic 1000 / 60 msec)
 	MsgTypeGamepadVibration              = "gpVibration"       // controller <------  server <------  gamepad
+	// TODO
+	// MsgTypeUpdateClientReq // name change
+	// MsgTypeUpdateClientRes // name change
+	// MsgTypeSignalingHangup // name change
 )
 
 const (
