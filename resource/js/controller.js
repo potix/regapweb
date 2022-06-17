@@ -580,7 +580,7 @@ function updateGamepadsStatus() {
 			GamepadState: {
 				DelivererId: delivererId.value,
 				ControllerId: controllerId.value,
-				GamepadId: gmepadId.value
+				GamepadId: gmepadId.value,
 				Buttons: buttons,
 				Axes: gamepad.axes,
 			},
