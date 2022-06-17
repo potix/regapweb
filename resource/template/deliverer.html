@@ -47,24 +47,24 @@
 		</p>
 		<p>
 			<div class="inline-block">
-				Peers:
+				Controllers:
 			</div>
-                        <div class="inline-block" id="div_for_peers">
-                                <select v-model="selectedPeer">
-                                        <option v-for="peer in peers" v-bind:value="peer">
-                                        {{ "{{peer}}" }}
+                        <div class="inline-block" id="div_for_controllers">
+                                <select v-model="selectedController">
+                                        <option v-for="controller in controllers" v-bind:value="controller.Id">
+					{{ "{{controller.Id}}" }} ({{ "{{controller.Name}}" }})
                                         </option>
                                 </select>
                         </div>
 		</p>
 		<p>
                         <div class="inline-block">
-                                Remote gamepads:
+                                Gamepads:
                         </div>
-                        <div class="inline-block" id="div_for_remote_gamepads">
-                                <select v-model="selectedRemoteGamepad">
-                                        <option v-for="remoteGamepad in remoteGamepads" v-bind:value="remoteGamepad">
-                                        {{ "{{remoteGamepad}}" }}
+                        <div class="inline-block" id="div_for_gamepads">
+                                <select v-model="selectedGamepad">
+                                        <option v-for="gamepad in gamepads" v-bind:value="gamepad.Id">
+					{{ "{{gamepad.Id}}" }} ({{ "{{gamepad.Name}}" }})
                                         </option>
                                 </select>
                         </div>
@@ -89,6 +89,6 @@
 			<button type="button" onclick="hangUp();">Hang Up</button>
 		</p>
 		<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
-		<script type='text/javascript' src="js/delivery.js"></script>
+		<script type='text/javascript' src="js/deliverer.js"></script>
 	</body>
 </html>

@@ -1,24 +1,24 @@
 package message
 
 const (
-	MsgTypePing                  string = "ping"              // client     <------> server (periodic 10 sec)
-	MsgTypeRegisterReq                  = "registerReq"       // client      ------> server
-	MsgTypeRegisterRes                  = "registerRes"       // client      ------> server
-	MsgTypeLookupReq                    = "lookupReq"         // deliverer   ------> server (periodic 3 sec)
-	MsgTypeLookupRes                    = "lookupRes"         // deliverer  <------  server
-	MsgTypeSignalingOfferSdpReq         = "sigOfferSdpReq"    // deliverer   ------> server  ------> controller
-	MsgTypeSignalingOfferSdpRes         = "sigOfferSdpRes"    // deliverer  <------  server <------  controller
-	MsgTypeSignalingOfferSdpServerError = "sigOfferSdpSrvErr" // deliverer  <------  server ------>  controller
-	MsgTypeSignalingAnserSdpReq         = "sigAnserSdpReq"    // deliverer  <------  server <------  controller
-	MsgTypeSignalingAnserSdpRes         = "sigAnserSdpRes"    // deliverer   ------> server  ------> controller
-	MsgTypeSignalingAnserSdpServerError = "sigAnserSdpSrvErr" // deliverer  <------  server  ------> controller
-	MsgTypeGamepadHandshakeReq          = "gpHandshakeReq"    // gamepad     ------> server
-	MsgTypeGamepadHandshakeRes          = "gpHandshakeRes"    // gamepad    <------> server
-	MsgTypeGamepadConnectReq            = "gpConnectReq"      // controller  ------> server  ------> gamepad
-	MsgTypeGamepadConnectRes            = "gpConnectRes"      // controller <------  server <------  gamepad
-	MsgTypeGamepadConnectServerError    = "gpConnectSrvErr"   // controller <------  server ------>  gamepad
-	MsgTypeGamepadState                 = "gpState"           // controller  ------> server  ------> gamepad (perodic 1000 / 60 msec)
-	MsgTypeGamepadVibration             = "gpVibration"       // controller <------  server <------  gamepad
+	MsgTypePing                   string = "ping"              // client     <------> server (periodic 10 sec)
+	MsgTypeRegisterReq                   = "registerReq"       // client      ------> server
+	MsgTypeRegisterRes                   = "registerRes"       // client      ------> server
+	MsgTypeLookupReq                     = "lookupReq"         // deliverer   ------> server (periodic 3 sec)
+	MsgTypeLookupRes                     = "lookupRes"         // deliverer  <------  server
+	MsgTypeSignalingOfferSdpReq          = "sigOfferSdpReq"    // deliverer   ------> server  ------> controller
+	MsgTypeSignalingOfferSdpRes          = "sigOfferSdpRes"    // deliverer  <------  server <------  controller
+	MsgTypeSignalingOfferSdpServerError  = "sigOfferSdpSrvErr" // deliverer  <------  server ------>  controller
+	MsgTypeSignalingAnswerSdpReq         = "sigAnswerSdpReq"    // deliverer  <------  server <------  controller
+	MsgTypeSignalingAnswerSdpRes         = "sigAnswerSdpRes"    // deliverer   ------> server  ------> controller
+	MsgTypeSignalingAnswerSdpServerError = "sigAnswerSdpSrvErr" // deliverer  <------  server  ------> controller
+	MsgTypeGamepadHandshakeReq           = "gpHandshakeReq"    // gamepad     ------> server
+	MsgTypeGamepadHandshakeRes           = "gpHandshakeRes"    // gamepad    <------> server
+	MsgTypeGamepadConnectReq             = "gpConnectReq"      // controller  ------> server  ------> gamepad
+	MsgTypeGamepadConnectRes             = "gpConnectRes"      // controller <------  server <------  gamepad
+	MsgTypeGamepadConnectServerError     = "gpConnectSrvErr"   // controller <------  server ------>  gamepad
+	MsgTypeGamepadState                  = "gpState"           // controller  ------> server  ------> gamepad (perodic 1000 / 60 msec)
+	MsgTypeGamepadVibration              = "gpVibration"       // controller <------  server <------  gamepad
 )
 
 const (

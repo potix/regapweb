@@ -569,22 +569,22 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 				}
 				continue
 			}
-		} else if msg.MsgType == message.MsgTypeSignalingAnserSdpReq {
+		} else if msg.MsgType == message.MsgTypeSignalingAnswerSdpReq {
 			if msg.SignalingSdpRequest == nil ||
 			   msg.SignalingSdpRequest.DelivererId == "" ||
 			   msg.SignalingSdpRequest.ControllerId == "" ||
 			   msg.SignalingSdpRequest.GamepadId == "" ||
 			   msg.SignalingSdpRequest.Sdp == "" {
-				log.Printf("no sigAnserSdpReq parameter: %v", msg.SignalingSdpRequest)
+				log.Printf("no sigAnswerSdpReq parameter: %v", msg.SignalingSdpRequest)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
-						Message: "no sigAnserSdpReq parameter",
+						Message: "no sigAnswerSdpReq parameter",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -593,14 +593,14 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 				log.Printf("controller id mismatch: act %v, exp %v",
 					msg.SignalingSdpRequest.ControllerId, client.clientId)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
 						Message: "controller id mismatch",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -609,14 +609,14 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 			if foundConn == nil || foundClient == nil {
 				log.Printf("not found deliverer id: %v", msg.SignalingSdpRequest.DelivererId)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
 						Message: "not found deliverer id",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -632,14 +632,14 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 				log.Printf("client relation mismatch: %v, %v, %v",
 					client.relationClient, foundClient.relationClient, msg.SignalingSdpRequest)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
 						Message: "client relation mismatch",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -647,35 +647,35 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 			// forward to deliverer
 			err = h.safeWriteMessage(foundConn, websocket.TextMessage, &msg)
 			if err != nil {
-				log.Printf("can not forward sigAnserSdpReq message: %v", msg)
+				log.Printf("can not forward sigAnswerSdpReq message: %v", msg)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
-						Message: "can not forward sigAnserSdpReq message",
+						Message: "can not forward sigAnswerSdpReq message",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
 			}
-		} else if msg.MsgType == message.MsgTypeSignalingAnserSdpRes {
+		} else if msg.MsgType == message.MsgTypeSignalingAnswerSdpRes {
 			if msg.SignalingSdpResponse == nil ||
 			   msg.SignalingSdpResponse.DelivererId == "" ||
 			   msg.SignalingSdpResponse.ControllerId == "" ||
 			   msg.SignalingSdpResponse.GamepadId == "" {
-				log.Printf("no sigAnserSdpRes parameter: %v", msg.SignalingSdpResponse)
+				log.Printf("no sigAnswerSdpRes parameter: %v", msg.SignalingSdpResponse)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
-						Message: "no sigAnserSdpRes parameter",
+						Message: "no sigAnswerSdpRes parameter",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -684,14 +684,14 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 				log.Printf("deliverer id mismatch: act %v, exp %v",
 					msg.SignalingSdpResponse.DelivererId, client.clientId)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
 						Message: "deliverer id mismatch",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -700,14 +700,14 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 			if foundConn == nil || foundClient == nil {
 				log.Printf("not found controller id: %v", msg.SignalingSdpResponse.ControllerId)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
 						Message: "not found controller Id",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -723,14 +723,14 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 				log.Printf("client relation mismatch: %v, %v, %v",
 					client.relationClient, foundClient.relationClient, msg.SignalingSdpResponse)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
 						Message: "client relation mismatch",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
@@ -738,16 +738,16 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 			// forward to controller
 			err = h.safeWriteMessage(foundConn, websocket.TextMessage, &msg)
 			if err != nil {
-				log.Printf("can not forward sigAnserSdpRes message: %v", msg)
+				log.Printf("can not forward sigAnswerSdpRes message: %v", msg)
 				resMsg := &message.Message{
-					MsgType: message.MsgTypeSignalingAnserSdpServerError,
+					MsgType: message.MsgTypeSignalingAnswerSdpServerError,
 					Error: &message.Error {
-						Message: "can not forward sigAnserSdpRes message",
+						Message: "can not forward sigAnswerSdpRes message",
 					},
 				}
 				err = h.safeWriteMessage(conn, websocket.TextMessage, resMsg)
 				if err != nil {
-					log.Printf("can not write sigAnserSdpSrvErr message: %v", err)
+					log.Printf("can not write sigAnswerSdpSrvErr message: %v", err)
 					return
 				}
 				continue
