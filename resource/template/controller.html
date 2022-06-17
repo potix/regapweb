@@ -4,7 +4,6 @@
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1" />
                 <title>regap controller</title>
-                <link rel="stylesheet" href="css/style.css" />
         </head>
 	<body>
 		<p>
@@ -59,6 +58,39 @@
 			<video id="remote_video" autoplay style="width: 960px; height: 540px; border: 1px solid black;" ></video>
                 </p>
 		<p>
+			<div id="gamepad_input">
+				<div class="buttons">
+					<template v-for="(button, index) in buttons">
+						<div class="inline-block">
+							<svg viewBox="-2.2 -2.2 4.4 4.4" width="48" height="48">
+								<circle cx="0" cy="0" r="2" :fill="button.pressed ? 'red' : 'lightgray'" stroke="#aaa" stroke-width="0.1" />
+								<text class="value" dominant-baseline="middle" text-anchor="middle" fill="#222" x="0" y="0">
+									{{ "{{ button.value }}" }}
+								</text>
+								<text class="index" alignment-baseline="hanging" dominant-baseline="hanging" text-anchor="start" fill="#222" x="-2" y="-2">
+									{{ "{{ index }}" }}
+								</text>
+							</svg>
+						</div>
+					</template>
+				</div>
+				<div class="axes">
+					<template v-for="axis in axes">
+						<div class="inline-block">
+							<svg viewBox="-2.2 -2.2 4.4 4.4" width="64" height="64">
+	    							<circle cx="0" cy="0" r="2" fill="none" stroke="#aaa" stroke-width="0.04" />
+	    							<path d="M0,-2L0,2M-2,0L2,0" stroke="#aaa" stroke-width="0.04" />
+	    							<circle :cx="axis.x * 2" :cy="axis.y * 2" r="0.22" fill="red" />
+	    							<text text-anchor="middle" fill="#222" x="0" y="2">
+									{{ "{{ axis.x.toFixed(2) }}" }},{{ "{{ axis.y.toFixed(2) }}" }}
+								</text>
+							</svg>
+						</div>
+					</template>
+				</div>
+			</div>
+                </p>
+		<p>
 			<div class="inline-block">
 				Deliverer:
 			</div>
@@ -87,6 +119,7 @@
 		<p>
 			<button type="button" onclick="hangUp();">Hang Up</button>
 		</p>
+                <link rel="stylesheet" href="css/style.css" />
 		<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 		<script type='text/javascript' src="js/controller.js"></script>
         </body>

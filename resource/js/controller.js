@@ -8,6 +8,11 @@ let completeSdpOffer = false;
 let completeAnswerSdp = false;
 let completeConnectGamepad = false;
 
+// performance
+const controllerId = document.getElementById('uid');
+const delivererId = document.getElementById('deliverer');
+const gamepadId = document.getElementById('gamepad');
+
 let nameApp = new Vue({
 	el: '#name',
 	data: {
@@ -74,6 +79,18 @@ let gamepadApp = new Vue({
 			}
 		}
 	}
+});
+
+let gamepadInputApp = new Vue({
+        el: '#gamepad_input',
+        data: {
+                axes: null,
+                buttons: null,
+        },
+        mounted : function(){
+        },
+        methods: {
+        }
 });
 
 window.onload = function() {
@@ -155,7 +172,6 @@ function startWebsocket() {
 			console.log("clientType mismatch in registerRes");
 			return
 		}
-		const controllerId = document.getElementById('uid');
                 controllerId.value =  msg.RegisterResponse.ClientId
                 console.log("done register");
 		return
@@ -169,7 +185,6 @@ function startWebsocket() {
 			// server is untrusted
 			return
 		}
-		const controllerId = document.getElementById('uid');
 		if (controllerId.value != msg.SignalingSdpRequest.ControllerId) {
 			console.log("id mismatch in sigOfferSdpReq");
 			// server is untrusted
@@ -180,7 +195,6 @@ function startWebsocket() {
 			msg.SignalingSdpRequest.DelivererId +
 			"(" + msg.SignalingSdpRequest.Name + ")" +
 			". Do you allow it?")) {
-			const controllerId = document.getElementById('uid');
 			let res = { MsgType: "sigOfferSdpRes",
 				    Error: {
 					    Message: "rejected"
@@ -195,9 +209,7 @@ function startWebsocket() {
 			return
 		}
 		console.log('received offer text');
-		const delivererId = document.getElementById('deliverer');
 		delivererId.value = msg.SignalingSdpRequest.DelivererId;
-		const gamepadId = document.getElementById('gamepad');
 		gamepadId.value = msg.SignalingSdpRequest.GamepadId;
 		const textToReceiveSdp = document.getElementById('text_for_receive_sdp');
 		textToReceiveSdp.value = msg.SignalingSdpRequest.Sdp;
@@ -231,9 +243,6 @@ function startWebsocket() {
 			handUp();
 			return
 		}
-		const controllerId = document.getElementById('uid');
-		const delivererId = document.getElementById('deliverer');
-		const gamepadId = document.getElementById('gamepad');
                 if (msg.SignalingSdpResponse.DelivererId != delivererId.value ||
                     msg.SignalingSdpResponse.ControllerId != controllerId.value ||
                     msg.SignalingSdpResponse.GamepadId != gamepadId.value) {
@@ -271,9 +280,6 @@ function startWebsocket() {
 			handUp();
 			return
 		}
-		const controllerId = document.getElementById('uid');
-		const delivererId = document.getElementById('deliverer');
-		const gamepadId = document.getElementById('gamepad');
                 if (msg.GamepadConnectResponse.DelivererId != delivererId.value ||
                     msg.GamepadConnectResponse.ControllerId != controllerId.value ||
                     msg.GamepadConnectResponse.GamepadId != gamepadId.value) {
@@ -298,9 +304,6 @@ function startWebsocket() {
 			// server is untrusted
 			return
 		}
-		const controllerId = document.getElementById('uid');
-		const delivererId = document.getElementById('deliverer');
-		const gamepadId = document.getElementById('gamepad');
                 if (msg.GamepadVibration.DelivererId != delivererId.value ||
                     msg.GamepadVibration.ControllerId != controllerId.value ||
                     msg.GamepadVibration.GamepadId != gamepadId.value) {
@@ -419,9 +422,6 @@ async function setOffer(sessionDescription) {
     try{
         await peerConnection.setRemoteDescription(sessionDescription);
         console.log('setRemoteDescription(offer) succsess in promise');
-	const controllerId = document.getElementById('uid');
-	const delivererId = document.getElementById('deliverer');
-	const gamepadId = document.getElementById('gamepad');
 	let res = { MsgType: "sigOfferSdpRes",
 		    SignalingSdpResponse: {
 			    DelivererId: delivererId.value,
@@ -436,9 +436,6 @@ async function setOffer(sessionDescription) {
         makeAnswerSdp();
     } catch(err){
         console.error('setRemoteDescription(offer) ERROR: ', err);
-	const controllerId = document.getElementById('uid');
-	const delivererId = document.getElementById('deliverer');
-	const gamepadId = document.getElementById('gamepad');
 	let res = { MsgType: "sigOfferSdpRes",
 		    Error: {
 			    Message: "could not set remote description"
@@ -472,9 +469,6 @@ function sendAnswerSdp(sessionDescription) {
 	console.log('--- sending answer sdp ---');
 	const textForSendSdp = document.getElementById('text_for_send_sdp');
 	textForSendSdp.value = sessionDescription.sdp;
-	const controllerId = document.getElementById('uid');
-	const delivererId = document.getElementById('deliverer');
-	const gamepadId = document.getElementById('gamepad');
         let req = { MsgType: "sigAnswerSdpReq",
 		    SignalingSdpRequest: {
 			    Name: nameApp.value,
@@ -507,9 +501,7 @@ function hangUp(){
                 peerConnection = null;
                 console.log('peerConnection is closed.');
 	}
-	const delivererId = document.getElementById('deliverer');
 	delivererId.value = '';
-	const gamepadId = document.getElementById('gamepad');
 	gamepadId.value = '';
         const textForSendSdp = document.getElementById('text_for_send_sdp');
         textForSendSdp.value = '';
@@ -564,12 +556,15 @@ function updateGamepadsStatus() {
 	scanGamepads();
 	let changed = false;
 	gamepad = gamepads[gamepadApp.selectedGamepad];
-	const controllerId = document.getElementById('uid');
-	const delivererId = document.getElementById('deliverer');
-	const gmepadId = document.getElementById('gamepad');
+	axes = [];
+	for (i = 0; i < gamepad.axes.length; i += 2) {
+		axes.push({x: gamepad.axes[i], y:  gamepad.axes[i + 1]})
+	}
+	gamepadInputApp.axes = axes;
+	gamepadInputApp.buttons = gamepad.buttons;
 	if (controllerId.value != "" &&
 	    delivererId.value != "" &&
-	    gmepadId.value != "" &&
+	    gamepadId.value != "" &&
 	    completeSdpOffer &&
             completeAnswerSdp &&
             completeConnectGamepad) {
@@ -582,7 +577,7 @@ function updateGamepadsStatus() {
 			GamepadState: {
 				DelivererId: delivererId.value,
 				ControllerId: controllerId.value,
-				GamepadId: gmepadId.value,
+				GamepadId: gamepadId.value,
 				Buttons: buttons,
 				Axes: gamepad.axes,
 			},

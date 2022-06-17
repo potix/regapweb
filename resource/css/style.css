@@ -20,3 +20,10 @@
 .background-color-green {
 	background-color: green;
 }
+
+.axes svg text {
+  font-size: 0.7px;
+}
+.buttons svg text {
+  font-size: 0.7px;
+}
