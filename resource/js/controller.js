@@ -4,7 +4,6 @@ let peerConnection = null;
 let remoteStream = new MediaStream();
 let started = false;
 let gamepads = {};
-let gamepadTimestamp = 0;
 let completeSdpOffer = false;
 let completeAnswerSdp = false;
 let completeConnectGamepad = false;
@@ -582,12 +581,12 @@ function updateGamepadsStatus() {
 				DelivererId: delivererId.value,
 				ControllerId: controllerId.value,
 				GamepadId: gmepadId.value
+				Buttons: buttons,
+				Axes: gamepad.axes,
 			},
-			Buttons: buttons,
-			Axes: gamepad.axes,
 		};
+		console.log(msg);
 		websocket.send(JSON.stringify(msg));
-		gamepadTimestamp = gamepad.timestamp;
 	}
 	const rAF = window.requestAnimationFrame ||
 	 	    window.mozRequestAnimationFrame ||
