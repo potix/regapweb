@@ -96,7 +96,7 @@ function getAVInputDevices() {
 }
 
 function startSignaling() {
-    signalingSocket = new WebSocket("wss://" + location.host + "/webrtc", "signaling");
+    signalingSocket = new WebSocket("wss://" + location.host + "/delivererws", "deliverer");
     signalingSocket.onopen = event => {
         console.log("signaling open");
         stopSignalingPingLoopValue = pingLoop(signalingSocket)

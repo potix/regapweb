@@ -1,12 +1,9 @@
-let signalingSocket = null;
+let websocket = null;
 let stopSignalingPingLoopValue = null;
 let peerConnection = null;
 let remoteStream = new MediaStream();
 let started = false;
 let gamepads = {};
-let gamepadSocket = null;
-let stopGamepadPingLoopValue = null;
-let stopGamepadNotifyLoopValue = null;
 let gamepadTimestamp = 0;
 
 let audioOutputDeviceApp = new Vue({
@@ -114,13 +111,13 @@ function getAudioOutDevices() {
 }
 
 function startSignaling() {
-    signalingSocket = new WebSocket("wss://" + location.host + "/webrtc", "signaling");    
-    signalingSocket.onopen = event => {
+    websocket = new WebSocket("wss://" + location.host + "/controllerws", "controller");    
+    websocket.onopen = event => {
         console.log("signaling open");
-	stopSignalingPingLoopValue = pingLoop(signalingSocket)
+	stopSignalingPingLoopValue = pingLoop(websocket)
 	startRegister();
     };
-    signalingSocket.onmessage = event => {
+    websocket.onmessage = event => {
         console.log("signaling message");
         console.log(event);
 	let msg = JSON.parse(event.data);
@@ -151,6 +148,15 @@ function startSignaling() {
 			console.log(msg);
 			return
 		}
+
+/*
+		if (!confirm(" XXXXX ")) {
+			// 拒絶　エラー response送る
+			return
+		}
+*/
+
+
 		console.log('received offer text');
 		const peerUid = document.getElementById('peer_uid');
 		peerUid.value = msg.Messages[1]
@@ -188,12 +194,12 @@ function startSignaling() {
 		console.log("unsupported message: " + msg.Command);
 	}
     }
-    signalingSocket.onerror = event => {
+    websocket.onerror = event => {
         stopPingLoop(stopSignalingPingLoopValue);
         console.log("signaling error");
         console.log(event);
     }
-    signalingSocket.onclose = event => {
+    websocket.onclose = event => {
         stopPingLoop(stopSignalingPingLoopValue);
         console.log("signaling close");
         console.log(event);
@@ -216,7 +222,7 @@ function startRegister() {
 		console.log("start register")
 		const uid = document.getElementById('uid');
 		let req = { Command : "registerRequest", Messages : [ uid.value ] };
-		signalingSocket.send(JSON.stringify(req));
+		websocket.send(JSON.stringify(req));
 	} else {
 		console.log("retry register")
 		setTimeout( () => {
@@ -307,7 +313,7 @@ function sendAnswerSdp(sessionDescription) {
 	const uid = document.getElementById('uid');
 	const peerUid = document.getElementById('peer_uid');
         let req = { "Command" : "sendAnswerSdpRequest", "Messages" : [ peerUid.value, uid.value, sessionDescription.sdp ] };
-        signalingSocket.send(JSON.stringify(req));
+        websocket.send(JSON.stringify(req));
 }
 
 //async function playRemoteVideo() {
@@ -407,32 +413,11 @@ function updateGamepadsStatus() {
 	rAF(updateGamepadsStatus);
 }
 
-function notifyLoop(socket) {
-	return setInterval(() => {
-		const uid = document.getElementById('uid');
-		const peerUid = document.getElementById('peer_uid');
-		if (uid.value != "" && peerUid.value != "") {
-			let req = {
-				Command: "notify",
-				Uid:     uid.value,
-				PeerUid: peerUid.value,
-			};
-			console.log(req);
-			socket.send(JSON.stringify(req));
-		}
-	}, 2000);
-}
-
-function stopNotifyLoop(value) {
-        clearInterval(value);
-}
 
 function startForwardGamepad() {
     gamepadSocket = new WebSocket("wss://" + location.host + "/gamepad", "gamepad");    
     gamepadSocket.onopen = event => {
         console.log("gamepad open");
-	stopGamepadPingLoopValue = pingLoop(gamepadSocket)
-	stopGamepadNotifyLoopValue = notifyLoop(gamepadSocket)
     };
     gamepadSocket.onmessage = event => {
         //console.log("gamepadSocket message");
@@ -468,14 +453,10 @@ function startForwardGamepad() {
 	}
     }
     gamepadSocket.onerror = event => {
-        stopPingLoop(stopGamepadPingLoopValue);
-        stopNotifyLoop(stopGamepadNotifyLoopValue);
         console.log("gamepad error");
         console.log(event);
     }
     gamepadSocket.onclose = event => {
-        stopPingLoop(stopGamepadPingLoopValue);
-        stopNotifyLoop(stopGamepadNotifyLoopValue);
         console.log("gamepad close");
         console.log(event);
     }

@@ -88,6 +88,9 @@ func main() {
                 log.SetOutput(logger)
         }
         verboseLoadedConfig(&conf)
+	// setup clinets store
+	csVerbose := handler.ClientsStoreVerbose(conf.Verbose)
+	newClientsStore := handler.NewClientsStore(csVerbose)
 	// setup forwarder
 	fVerboseOpt := handler.ForwarderVerbose(conf.Verbose)
 	newForwarder := handler.NewForwarder(fVerboseOpt)
@@ -95,6 +98,7 @@ func main() {
 	thVerboseOpt := handler.TcpVerbose(conf.Verbose)
 	newTcpHandler, err := handler.NewTcpHandler(
                 conf.TcpHandler.Secret,
+		newClientsStore,
 		newForwarder,
                 thVerboseOpt,
         )
@@ -120,6 +124,7 @@ func main() {
 	newHttpHandler, err := handler.NewHttpHandler(
                 conf.HttpHandler.ResourcePath,
                 conf.HttpHandler.Accounts,
+		newClientsStore,
 		newForwarder,
                 hhVerboseOpt,
         )

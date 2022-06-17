@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log"
+	"github.com/potix/regapweb/message"
 )
 
 type forwarderOptions struct {
@@ -22,10 +23,21 @@ func ForwarderVerbose(verbose bool) ForwarderOption {
         }
 }
 
+type ErrorCb func(error)
+
+type OnFromTcp func(*message.Message) error
+
+type OnFromWs func(*message.Message) error
+
+type msgAndErrCb struct {
+	msg *message.Message
+	errCb ErrorCb
+}
+
 type Forwarder struct {
 	opts            *forwarderOptions
-        toTcpChan       chan *GamepadMessage
-        toWsChan        chan *GamepadMessage
+        toTcpChan       chan *msgAndErrCb
+        toWsChan        chan *msgAndErrCb
         stopFromTcpChan chan int
         stopFromWsChan  chan int
 	started         bool
@@ -39,19 +51,17 @@ func (f *Forwarder)Stop() {
 	f.started = false
 }
 
-func (f *Forwarder)ToTcp(msg *GamepadMessage) {
+func (f *Forwarder)ToTcp(msg *message.Message, errCb ErrorCb) {
 	if f.started {
-		f.toTcpChan <- msg
+		f.toTcpChan <- &msgAndErrCb{ msg: msg, errCb: errCb }
 	}
 }
 
-func (f *Forwarder)ToWs(msg *GamepadMessage) {
+func (f *Forwarder)ToWs(msg *message.Message, errCb ErrorCb) {
 	if f.started {
-		f.toWsChan <- msg
+		f.toWsChan <- &msgAndErrCb{ msg: msg, errCb: errCb }
 	}
 }
-
-type OnFromTcp func(*GamepadMessage)
 
 func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 	go func() {
@@ -59,7 +69,10 @@ func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 		for {
 			select {
 			case v := <-f.toWsChan:
-				fn(v)
+				err := fn(v.msg)
+				if err != nil && v.errCb != nil {
+					v.errCb(err)
+				}
 			case <-f.stopFromTcpChan:
 				return
 			}
@@ -72,15 +85,16 @@ func (f *Forwarder) StopFromTcpListener() {
 	close(f.stopFromTcpChan)
 }
 
-type OnFromWs func(*GamepadMessage)
-
 func (f *Forwarder) StartFromWsListener(fn OnFromWs) {
 	go func() {
 		log.Printf("start from http listener")
 		for {
 			select {
 			case v := <-f.toTcpChan:
-				fn(v)
+				err := fn(v.msg)
+				if err != nil && v.errCb != nil {
+					v.errCb(err)
+				}
 			case <-f.stopFromWsChan:
 				return
 			}
@@ -103,8 +117,8 @@ func NewForwarder(opts ...ForwarderOption) *Forwarder {
         }
 	return &Forwarder{
 		opts:            baseOpts,
-		toTcpChan:       make(chan *GamepadMessage),
-		toWsChan:        make(chan *GamepadMessage),
+		toTcpChan:       make(chan *msgAndErrCb),
+		toWsChan:        make(chan *msgAndErrCb),
 		stopFromTcpChan: make(chan int),
 		stopFromWsChan:  make(chan int),
 		started:         false,
