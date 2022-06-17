@@ -180,14 +180,14 @@ func (t *TcpHandler) handshake(conn net.Conn, gamepadId string) (error) {
 				resMsg := &message.Message{
 					MsgType: message.MsgTypeGamepadHandshakeRes,
 					Error: &message.Error{
-						Message: "no request parameter",
+						Message: "no parameter in gpHandshakeRquest",
 					},
 				}
 				err = t.writeMessage(conn, resMsg)
 				if err != nil {
 					return fmt.Errorf("can not write gpHandshakeRes: %w", err)
 				}
-				return fmt.Errorf("no request parameter: %v", msg.GamepadHandshakeRequest)
+				return fmt.Errorf("no parameter in gpHandshakeRquest: %v", msg.GamepadHandshakeRequest)
 			}
 			if msg.GamepadHandshakeRequest.Digest != t.digest {
 				resMsg := &message.Message{
@@ -233,7 +233,7 @@ func (t *TcpHandler) OnAccept(conn net.Conn) {
 	}
 	err = t.handshake(conn, gamepadId)
 	if err != nil {
-		log.Printf("can not handshakea: %v", err)
+		log.Printf("can not handshake: %v", err)
 		return
 	}
 	if t.verbose {

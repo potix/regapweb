@@ -117,8 +117,8 @@ type Message struct {
 	LookupResponse           *LookupResponse           `json:"omitempty"`
 	SignalingSdpRequest      *SignalingSdpRequest      `json:"omitempty"`
 	SignalingSdpResponse     *SignalingSdpResponse     `json:"omitempty"`
-	GamepadHandshakeRequest  *GamepadHandshakeRequest  `json:"omitempty"`
-	GamepadHandshakeResponse *GamepadHandshakeResponse `json:"omitempty"`
+	GamepadHandshakeRequest  *GamepadHandshakeRequest  `json:"GamepadHandshakeRequest,omitempty"`
+	GamepadHandshakeResponse *GamepadHandshakeResponse `json:"GamepadHandshakeResponse,omitempty"`
 	GamepadConnectRequest    *GamepadConnectRequest    `json:"omitempty"`
 	GamepadConnectResponse   *GamepadConnectResponse   `json:"omitempty"`
 	GamepadState             *GamepadState             `json:"omitempty"`
