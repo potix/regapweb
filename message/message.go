@@ -111,18 +111,18 @@ type GamepadVibration struct {
 
 type Message struct {
 	MsgType                  string
-	Error                    *Error
-	RegisterRequest          *RegisterRequest
-	RegisterResponse         *RegisterResponse
-	LookupResponse           *LookupResponse
-	SignalingSdpRequest      *SignalingSdpRequest
-	SignalingSdpResponse     *SignalingSdpResponse
-	GamepadHandshakeRequest  *GamepadHandshakeRequest
-	GamepadHandshakeResponse *GamepadHandshakeResponse
-	GamepadConnectRequest    *GamepadConnectRequest
-	GamepadConnectResponse   *GamepadConnectResponse
-	GamepadState             *GamepadState
-	GamepadVibration         *GamepadVibration
+	Error                    *Error                    `json:"omitempty"`
+	RegisterRequest          *RegisterRequest          `json:"omitempty"`
+	RegisterResponse         *RegisterResponse         `json:"omitempty"`
+	LookupResponse           *LookupResponse           `json:"omitempty"`
+	SignalingSdpRequest      *SignalingSdpRequest      `json:"omitempty"`
+	SignalingSdpResponse     *SignalingSdpResponse     `json:"omitempty"`
+	GamepadHandshakeRequest  *GamepadHandshakeRequest  `json:"omitempty"`
+	GamepadHandshakeResponse *GamepadHandshakeResponse `json:"omitempty"`
+	GamepadConnectRequest    *GamepadConnectRequest    `json:"omitempty"`
+	GamepadConnectResponse   *GamepadConnectResponse   `json:"omitempty"`
+	GamepadState             *GamepadState             `json:"omitempty"`
+	GamepadVibration         *GamepadVibration         `json:"omitempty"`
 }
 
 

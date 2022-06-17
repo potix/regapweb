@@ -108,7 +108,7 @@ function startWebsocket() {
         websocket.send(JSON.stringify(req));
     };
     websocket.onmessage = event => {
-        console.log("signaling message");
+        console.log("websocket message");
         console.log(event);
 	let msg = JSON.parse(event.data);
         if (msg.MsgType== "ping") {
@@ -157,7 +157,7 @@ function startWebsocket() {
 			return 
 		}
 		if (msg.Error && msg.Error.Message != "") {
-			if msg.Error.Message == "reject" {
+			if (msg.Error.Message == "reject") {
 				alert("rejected by peer");
 			} else {
 				console.log("could not send offer sdp: " + msg.Error.Message);
@@ -173,7 +173,7 @@ function startWebsocket() {
 			console.log("not complete offerSdp");
 			const uid = document.getElementById('uid');
 			let res = { MsgType : "sigAnswerSdpRes",
-				    Error {
+				    Error: {
 					    Message: "not complete offerSdp"
 				    },
 				    SignalingSdpResponse : {
@@ -194,7 +194,7 @@ function startWebsocket() {
 			console.log("no parameter in sigAnswerSdpReq");
 			const uid = document.getElementById('uid');
 			let res = { MsgType : "sigAnswerSdpRes",
-				    Error {
+				    Error: {
 					    Message: "no parameter in sigAnswerSdpReq"
 				    },
 				    SignalingSdpResponse : {
@@ -214,7 +214,7 @@ function startWebsocket() {
 			console.log("ids are mismatch in sigAnswerSdpReq");
 			const uid = document.getElementById('uid');
 			let res = { MsgType : "sigAnswerSdpRes",
-				    Error {
+				    Error: {
 					    Message: "ids are mismatch in sigAnswerSdpReq"
 				    },
 				    SignalingSdpResponse : {
@@ -418,7 +418,7 @@ async function setAnswer(sessionDescription) {
         console.error('setRemoteDescription(answer) ERROR: ', err);
 	const uid = document.getElementById('uid');
 	let res = { MsgType : "sigAnswerSdpRes",
-		    Error {
+		    Error: {
 			    Message: "could not set remote description"
 		    },
 		    SignalingSdpResponse : {
