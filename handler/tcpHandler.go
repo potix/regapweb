@@ -239,6 +239,7 @@ func (t *TcpHandler) OnAccept(conn net.Conn) {
 	if t.verbose {
 		log.Printf("end handshake")
 	}
+	defer t.clientsStore.DeleteGamepad(gamepadId)
 	conn.SetDeadline(time.Time{})
 	pingStopChan := make(chan int)
         go t.startPingLoop(conn, pingStopChan)

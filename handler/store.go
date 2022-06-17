@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"sync"
 	"github.com/potix/regapweb/message"
 )
@@ -52,18 +53,27 @@ func (c *ClientsStore) AddDeliverer(clientId string, clientName string) {
 	c.delivererClientsMutex.Lock()
         defer c.delivererClientsMutex.Unlock()
 	c.baseAddClient(c.delivererClients, clientId, clientName)
+	if c.verbose {
+		log.Printf("add or update deliverer: id = %v, name = %v", clientId, clientName)
+	}
 }
 
 func (c *ClientsStore) AddController(clientId string, clientName string) {
 	c.controllerClientsMutex.Lock()
         defer c.controllerClientsMutex.Unlock()
 	c.baseAddClient(c.controllerClients, clientId, clientName)
+	if c.verbose {
+		log.Printf("add or update controller: id = %v, name = %v", clientId, clientName)
+	}
 }
 
 func (c *ClientsStore) AddGamepad(clientId string, clientName string) {
 	c.gamepadClientsMutex.Lock()
         defer c.gamepadClientsMutex.Unlock()
 	c.baseAddClient(c.gamepadClients, clientId, clientName)
+	if c.verbose {
+		log.Printf("add or update gamepad: id = %v, name = %v", clientId, clientName)
+	}
 }
 
 func (c *ClientsStore) baseDeleteClient(clients map[string]*client, clientId string) {
@@ -76,18 +86,27 @@ func (c *ClientsStore) baseDeleteClient(clients map[string]*client, clientId str
 func (c *ClientsStore) DeleteDeliverer(clientId string) {
 	c.delivererClientsMutex.Lock()
         defer c.delivererClientsMutex.Unlock()
+	if c.verbose {
+		log.Printf("delete deliverer: id = %v", clientId)
+	}
 	c.baseDeleteClient(c.delivererClients, clientId)
 }
 
 func (c *ClientsStore) DeleteController(clientId string) {
 	c.controllerClientsMutex.Lock()
         defer c.controllerClientsMutex.Unlock()
+	if c.verbose {
+		log.Printf("delete controller: id = %v", clientId)
+	}
 	c.baseDeleteClient(c.controllerClients, clientId)
 }
 
 func (c *ClientsStore) DeleteGamepad(clientId string) {
 	c.gamepadClientsMutex.Lock()
         defer c.gamepadClientsMutex.Unlock()
+	if c.verbose {
+		log.Printf("delete gamepad: id = %v", clientId)
+	}
 	c.baseDeleteClient(c.gamepadClients, clientId)
 }
 

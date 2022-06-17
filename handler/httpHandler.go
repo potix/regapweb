@@ -317,9 +317,11 @@ func (h *HttpHandler) websocketLoop(conn *websocket.Conn, clientType string) {
 			}
 			if clientType == message.ClientTypeDeliverer {
 				h.clientsStore.AddDeliverer(clientId, msg.RegisterRequest.ClientName)
+				defer h.clientsStore.DeleteDeliverer(clientId)
 
 			} else if clientType == message.ClientTypeController {
 				h.clientsStore.AddController(clientId, msg.RegisterRequest.ClientName)
+				defer h.clientsStore.DeleteController(clientId)
 			}
 		} else if msg.MsgType == message.MsgTypeLookupReq {
 			controllers := h.clientsStore.GetControllers()
