@@ -556,12 +556,6 @@ function updateGamepadsStatus() {
 	scanGamepads();
 	let changed = false;
 	gamepad = gamepads[gamepadApp.selectedGamepad];
-	axes = [];
-	for (i = 0; i < gamepad.axes.length; i += 2) {
-		axes.push({x: gamepad.axes[i], y:  gamepad.axes[i + 1]})
-	}
-	gamepadInputApp.axes = axes;
-	gamepadInputApp.buttons = gamepad.buttons;
 	if (controllerId.value != "" &&
 	    delivererId.value != "" &&
 	    gamepadId.value != "" &&
@@ -585,6 +579,12 @@ function updateGamepadsStatus() {
 		//console.log(msg);
 		websocket.send(JSON.stringify(msg));
 	}
+	axes = [];
+	for (i = 0; i < gamepad.axes.length; i += 2) {
+		axes.push({x: gamepad.axes[i], y:  gamepad.axes[i + 1]})
+	}
+	gamepadInputApp.axes = axes;
+	gamepadInputApp.buttons = gamepad.buttons;
 	const rAF = window.requestAnimationFrame ||
 	 	    window.mozRequestAnimationFrame ||
                     window.webkitRequestAnimationFrame
