@@ -579,7 +579,7 @@ function updateGamepadsStatus() {
 		//console.log(msg);
 		websocket.send(JSON.stringify(msg));
 	}
-	axes = [];
+	let axes = [];
 	for (i = 0; i < gamepad.axes.length; i += 2) {
 		axes.push({x: gamepad.axes[i], y:  gamepad.axes[i + 1]})
 	}
