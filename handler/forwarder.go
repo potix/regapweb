@@ -35,7 +35,7 @@ type msgAndErrCb struct {
 }
 
 type Forwarder struct {
-	opts            *forwarderOptions
+	verbose         bool
         toTcpChan       chan *msgAndErrCb
         toWsChan        chan *msgAndErrCb
         stopFromTcpChan chan int
@@ -65,7 +65,9 @@ func (f *Forwarder)ToWs(msg *message.Message, errCb ErrorCb) {
 
 func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 	go func() {
-		log.Printf("start from tcp listener")
+		if f.verbose {
+			log.Printf("start from tcp listener")
+		}
 		for {
 			select {
 			case v := <-f.toWsChan:
@@ -77,7 +79,9 @@ func (f *Forwarder) StartFromTcpListener(fn OnFromTcp) {
 				return
 			}
 		}
-		log.Printf("finish from tcp listener")
+		if f.verbose {
+			log.Printf("finish from tcp listener")
+		}
 	}()
 }
 
@@ -87,7 +91,9 @@ func (f *Forwarder) StopFromTcpListener() {
 
 func (f *Forwarder) StartFromWsListener(fn OnFromWs) {
 	go func() {
-		log.Printf("start from http listener")
+		if f.verbose {
+			log.Printf("start from http listener")
+		}
 		for {
 			select {
 			case v := <-f.toTcpChan:
@@ -99,7 +105,9 @@ func (f *Forwarder) StartFromWsListener(fn OnFromWs) {
 				return
 			}
 		}
-		log.Printf("finish from http listener")
+		if f.verbose {
+			log.Printf("finish from http listener")
+		}
 	}()
 }
 
@@ -116,7 +124,7 @@ func NewForwarder(opts ...ForwarderOption) *Forwarder {
                 opt(baseOpts)
         }
 	return &Forwarder{
-		opts:            baseOpts,
+		verbose:         baseOpts.verbose,
 		toTcpChan:       make(chan *msgAndErrCb),
 		toWsChan:        make(chan *msgAndErrCb),
 		stopFromTcpChan: make(chan int),

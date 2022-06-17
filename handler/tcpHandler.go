@@ -90,11 +90,17 @@ func (t *TcpHandler) clientRegister(conn net.Conn, gamepadId string) {
         t.tcpClients[conn] = &tcpClient {
 		gamepadId: gamepadId,
 	}
+	if t.verbose {
+		log.Printf("register gamepad client: conn = %p, id = %v", conn, gamepadId)
+	}
 }
 
 func (t *TcpHandler) clientUnregister(conn net.Conn) {
         t.tcpClientsMutex.Lock()
         defer t.tcpClientsMutex.Unlock()
+	if t.verbose {
+		log.Printf("unregister gamepad client: conn = %p", conn)
+	}
         delete(t.tcpClients, conn)
 }
 
