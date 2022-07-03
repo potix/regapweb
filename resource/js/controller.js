@@ -368,14 +368,11 @@ function startRegister() {
 function prepareNewConnection(isOffer) {
     console.log('prepareNewConnection');
     const iceServers = [
-	{
-	  urls: "stun:stun.webrtc.ecl.ntt.com:3478",
-	},
-        //{
-        //    url: 'turn:numb.viagenie.ca',
-        //    credential: 'muazkh',
-        //    username: 'webrtc@live.com'
-        //},
+	{ urls: "stun:stun.l.google.com:19302" },
+	{ urls: "stun:stun1.l.google.com:19302" },
+	{ urls: "stun:stun2.l.google.com:19302" },
+	{ urls: "stun:stun3.l.google.com:19302" },
+	{ urls: "stun:stun4.l.google.com:19302" },
     ]
     const peer = new RTCPeerConnection({"iceServers": iceServers});
 
